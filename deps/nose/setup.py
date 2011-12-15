@@ -1,6 +1,6 @@
-from nose import __version__ as VERSION
 import sys
 
+VERSION = '0.11.3'
 py_vers_tag = '-%s.%s' % sys.version_info[:2]
 
 try:
@@ -8,7 +8,7 @@ try:
     addl_args = dict(
         zip_safe = False,
         packages = find_packages(),
-        entry_points = {        
+        entry_points = {
         'console_scripts': [
             'nosetests = nose:run_exit',
             'nosetests%s = nose:run_exit' % py_vers_tag,
@@ -19,13 +19,39 @@ try:
         },
         test_suite = 'nose.collector',
         )
+
+    # This is required by multiprocess plugin; on Windows, if
+    # the launch script is not import-safe, spawned processes
+    # will re-run it, resulting in an infinite loop.
+    if sys.platform == 'win32':
+        import re
+        from setuptools.command.easy_install import easy_install
+
+        def wrap_write_script(self, script_name, contents, *arg, **kwarg):
+            bad_text = re.compile(
+                "\n"
+                "sys.exit\(\n"
+                "   load_entry_point\(([^\)]+)\)\(\)\n"
+                "\)\n")
+            good_text = (
+                "\n"
+                "if __name__ == '__main__':\n"
+                "    sys.exit(\n"
+                r"        load_entry_point(\1)()\n"
+                "    )\n"
+                )
+            contents = bad_text.sub(good_text, contents)
+            return self._write_script(script_name, contents, *arg, **kwarg)
+        easy_install._write_script = easy_install.write_script
+        easy_install.write_script = wrap_write_script
+
 except ImportError:
     from distutils.core import setup
     addl_args = dict(
         packages = ['nose', 'nose.ext', 'nose.plugins'],
         scripts = ['bin/nosetests'],
         )
-    
+
 setup(
     name = 'nose',
     version = VERSION,
@@ -45,7 +71,7 @@ setup(
     These features, and many more, are customizable through the use of
     plugins. Plugins included with nose provide support for doctest, code
     coverage and profiling, flexible attribute-based test selection,
-    output capture and more. More information about writing plugins may be 
+    output capture and more. More information about writing plugins may be
     found on in the nose API documentation, here:
     http://somethingaboutorange.com/mrl/projects/nose/
 
@@ -74,3 +100,5 @@ setup(
         ],
     **addl_args
     )
+
+            
