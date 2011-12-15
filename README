@@ -16,4 +16,17 @@ Method used:
 
   * As updates happen:
      * Go into vendor
+     
+git checkout vendor
+cd deps
+
+# First time
+unzip package.x.y.z.zip
+mv package.x.y.z package
+git add package
+git commit -a -m "Import of Package X.Y.Z"
+git push origin vendor
+
+# Second time
+
 
