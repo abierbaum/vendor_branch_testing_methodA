@@ -1,1 +1,7 @@
 Testing of a method for vendor branch tracking.
+
+Method:
+
+  * Create vendor *branch*
+  * Keep copies of all vendor drops in that branch in the directory structure we want
+  * Merge from that branch into our dev branch to bring in changes in directory structure and/or new versions.
