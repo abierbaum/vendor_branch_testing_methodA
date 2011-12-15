@@ -7,6 +7,11 @@ Method used:
   * Create the structure we want for all deps in that branch
   * Keep copies of all vendor drops in that branch in the directory structure we want
   * Merge 'vendor' into 'dev' to get all changes
+
+  git checkout dev
+  git merge --no-ff vendor
+  git push                    # To upload to server
+
   * As updates happen:
      * Go into vendor
 
