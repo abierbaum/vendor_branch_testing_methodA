@@ -28,5 +28,11 @@ git commit -a -m "Import of Package X.Y.Z"
 git push origin vendor
 
 # Second time
+rm -rf package
+unzip package.x.y.z.zip
+mv package.x.y.z package
+# Make sure files are in place
+git commit -a -m "Import of Package X.Y.Z"
+git push origin vendor
 
 
