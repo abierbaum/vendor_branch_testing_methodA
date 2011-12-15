@@ -1,0 +1,558 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>webtest – Functional Testing of Web Applications &mdash; WebTest v1.2 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="WebTest v1.2 documentation" href="../index.html" />
+    <link rel="prev" title="License" href="../license.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../license.html" title="License"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">WebTest v1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-webtest">
+<span id="webtest-functional-testing-of-web-applications"></span><h1><a class="reference internal" href="#module-webtest" title="webtest"><tt class="xref py py-mod docutils literal"><span class="pre">webtest</span></tt></a> &#8211; Functional Testing of Web Applications<a class="headerlink" href="#module-webtest" title="Permalink to this headline">¶</a></h1>
+<p>Routines for testing WSGI applications.</p>
+<p>Most interesting is TestApp</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="webtest.TestApp">
+<em class="property">class </em><tt class="descclassname">webtest.</tt><tt class="descname">TestApp</tt><big>(</big><em>app</em>, <em>extra_environ=None</em>, <em>relative_to=None</em>, <em>use_unicode=True</em><big>)</big><a class="headerlink" href="#webtest.TestApp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps a WSGI application in a more convenient interface for
+testing.</p>
+<p><tt class="docutils literal"><span class="pre">app</span></tt> may be an application, or a Paste Deploy app
+URI, like <tt class="docutils literal"><span class="pre">'config:filename.ini#test'</span></tt>.</p>
+<p><tt class="docutils literal"><span class="pre">extra_environ</span></tt> is a dictionary of values that should go
+into the environment for each request.  These can provide a
+communication channel with the application.</p>
+<p><tt class="docutils literal"><span class="pre">relative_to</span></tt> is a directory, and filenames used for file
+uploads are calculated relative to this.  Also <tt class="docutils literal"><span class="pre">config:</span></tt>
+URIs that aren&#8217;t absolute.</p>
+<dl class="method">
+<dt id="webtest.TestApp.delete">
+<tt class="descname">delete</tt><big>(</big><em>url</em>, <em>params=''</em>, <em>headers=None</em>, <em>extra_environ=None</em>, <em>status=None</em>, <em>expect_errors=False</em><big>)</big><a class="headerlink" href="#webtest.TestApp.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do a DELETE request.  Very like the <tt class="docutils literal"><span class="pre">.get()</span></tt> method.</p>
+<p>Returns a <tt class="docutils literal"><span class="pre">webob.Response</span></tt> object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestApp.do_request">
+<tt class="descname">do_request</tt><big>(</big><em>req</em>, <em>status</em>, <em>expect_errors</em><big>)</big><a class="headerlink" href="#webtest.TestApp.do_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes the given request (<tt class="docutils literal"><span class="pre">req</span></tt>), with the expected
+<tt class="docutils literal"><span class="pre">status</span></tt>.  Generally <tt class="docutils literal"><span class="pre">.get()</span></tt> and <tt class="docutils literal"><span class="pre">.post()</span></tt> are used
+instead.</p>
+<p>To use this:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">resp</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">do_request</span><span class="p">(</span><span class="n">webtest</span><span class="o">.</span><span class="n">TestRequest</span><span class="o">.</span><span class="n">blank</span><span class="p">(</span>
+    <span class="s">&#39;url&#39;</span><span class="p">,</span> <span class="o">...</span><span class="n">args</span><span class="o">...</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Note you can pass any keyword arguments to
+<tt class="docutils literal"><span class="pre">TestRequest.blank()</span></tt>, which will be set on the request.
+These can be arguments like <tt class="docutils literal"><span class="pre">content_type</span></tt>, <tt class="docutils literal"><span class="pre">accept</span></tt>, etc.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestApp.encode_multipart">
+<tt class="descname">encode_multipart</tt><big>(</big><em>params</em>, <em>files</em><big>)</big><a class="headerlink" href="#webtest.TestApp.encode_multipart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encodes a set of parameters (typically a name/value list) and
+a set of files (a list of (name, filename, file_body)) into a
+typical POST body, returning the (content_type, body).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestApp.get">
+<tt class="descname">get</tt><big>(</big><em>url</em>, <em>params=None</em>, <em>headers=None</em>, <em>extra_environ=None</em>, <em>status=None</em>, <em>expect_errors=False</em><big>)</big><a class="headerlink" href="#webtest.TestApp.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the given url (well, actually a path like
+<tt class="docutils literal"><span class="pre">'/page.html'</span></tt>).</p>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">params</span></tt>:</dt>
+<dd>A query string, or a dictionary that will be encoded
+into a query string.  You may also include a query
+string on the <tt class="docutils literal"><span class="pre">url</span></tt>.</dd>
+<dt><tt class="docutils literal"><span class="pre">headers</span></tt>:</dt>
+<dd>A dictionary of extra headers to send.</dd>
+<dt><tt class="docutils literal"><span class="pre">extra_environ</span></tt>:</dt>
+<dd>A dictionary of environmental variables that should
+be added to the request.</dd>
+<dt><tt class="docutils literal"><span class="pre">status</span></tt>:</dt>
+<dd>The integer status code you expect (if not 200 or 3xx).
+If you expect a 404 response, for instance, you must give
+<tt class="docutils literal"><span class="pre">status=404</span></tt> or it will be an error.  You can also give
+a wildcard, like <tt class="docutils literal"><span class="pre">'3*'</span></tt> or <tt class="docutils literal"><span class="pre">'*'</span></tt>.</dd>
+<dt><tt class="docutils literal"><span class="pre">expect_errors</span></tt>:</dt>
+<dd>If this is not true, then if anything is written to
+<tt class="docutils literal"><span class="pre">wsgi.errors</span></tt> it will be an error.  If it is true, then
+non-200/3xx responses are also okay.</dd>
+</dl>
+<p>Returns a <tt class="docutils literal"><span class="pre">webob.Response</span></tt> object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestApp.head">
+<tt class="descname">head</tt><big>(</big><em>url</em>, <em>headers=None</em>, <em>extra_environ=None</em>, <em>status=None</em>, <em>expect_errors=False</em><big>)</big><a class="headerlink" href="#webtest.TestApp.head" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do a HEAD request.  Very like the <tt class="docutils literal"><span class="pre">.get()</span></tt> method.</p>
+<p>Returns a <tt class="docutils literal"><span class="pre">webob.Response</span></tt> object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestApp.post">
+<tt class="descname">post</tt><big>(</big><em>url</em>, <em>params=''</em>, <em>headers=None</em>, <em>extra_environ=None</em>, <em>status=None</em>, <em>upload_files=None</em>, <em>expect_errors=False</em>, <em>content_type=None</em><big>)</big><a class="headerlink" href="#webtest.TestApp.post" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do a POST request.  Very like the <tt class="docutils literal"><span class="pre">.get()</span></tt> method.
+<tt class="docutils literal"><span class="pre">params</span></tt> are put in the body of the request.</p>
+<p><tt class="docutils literal"><span class="pre">upload_files</span></tt> is for file uploads.  It should be a list of
+<tt class="docutils literal"><span class="pre">[(fieldname,</span> <span class="pre">filename,</span> <span class="pre">file_content)]</span></tt>.  You can also use
+just <tt class="docutils literal"><span class="pre">[(fieldname,</span> <span class="pre">filename)]</span></tt> and the file content will be
+read from disk.</p>
+<p>Returns a <tt class="docutils literal"><span class="pre">webob.Response</span></tt> object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestApp.put">
+<tt class="descname">put</tt><big>(</big><em>url</em>, <em>params=''</em>, <em>headers=None</em>, <em>extra_environ=None</em>, <em>status=None</em>, <em>upload_files=None</em>, <em>expect_errors=False</em>, <em>content_type=None</em><big>)</big><a class="headerlink" href="#webtest.TestApp.put" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do a PUT request.  Very like the <tt class="docutils literal"><span class="pre">.put()</span></tt> method.
+<tt class="docutils literal"><span class="pre">params</span></tt> are put in the body of the request, if params is a
+tuple, dictionary, list, or iterator it will be urlencoded and
+placed in the body as with a POST, if it is string it will not
+be encoded, but placed in the body directly.</p>
+<p>Returns a <tt class="docutils literal"><span class="pre">webob.Response</span></tt> object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestApp.request">
+<tt class="descname">request</tt><big>(</big><em>url_or_req</em>, <em>status=None</em>, <em>expect_errors=False</em>, <em>**req_params</em><big>)</big><a class="headerlink" href="#webtest.TestApp.request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates and executes a request.  You may either pass in an
+instantiated <a class="reference internal" href="#webtest.TestRequest" title="webtest.TestRequest"><tt class="xref py py-class docutils literal"><span class="pre">TestRequest</span></tt></a> object, or you may pass in a
+URL and keyword arguments to be passed to
+<tt class="xref py py-meth docutils literal"><span class="pre">TestRequest.blank()</span></tt>.</p>
+<p>You can use this to run a request without the intermediary
+functioning of <a class="reference internal" href="#webtest.TestApp.get" title="webtest.TestApp.get"><tt class="xref py py-meth docutils literal"><span class="pre">TestApp.get()</span></tt></a> etc.  For instance, to
+test a WebDAV method:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">resp</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s">&#39;/new-col&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s">&#39;MKCOL&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that the request won&#8217;t have a body unless you specify it,
+like:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">resp</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s">&#39;/test.txt&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s">&#39;PUT&#39;</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="s">&#39;test&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can use <tt class="docutils literal"><span class="pre">POST={args}</span></tt> to set the request body to the
+serialized arguments, and simultaneously set the request
+method to <tt class="docutils literal"><span class="pre">POST</span></tt></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestApp.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#webtest.TestApp.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resets the state of the application; currently just clears
+saved cookies.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="webtest.AppError">
+<em class="property">exception </em><tt class="descclassname">webtest.</tt><tt class="descname">AppError</tt><a class="headerlink" href="#webtest.AppError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<div class="section" id="return-values">
+<h3>Return Values<a class="headerlink" href="#return-values" title="Permalink to this headline">¶</a></h3>
+<p>Some of the return values return instances of these classes:</p>
+<dl class="class">
+<dt id="webtest.TestResponse">
+<em class="property">class </em><tt class="descclassname">webtest.</tt><tt class="descname">TestResponse</tt><big>(</big><em>body=None</em>, <em>status=None</em>, <em>headerlist=None</em>, <em>app_iter=None</em>, <em>request=None</em>, <em>content_type=None</em>, <em>conditional_response=None</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#webtest.TestResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instances of this class are return by <tt class="docutils literal"><span class="pre">TestApp</span></tt></p>
+<dl class="method">
+<dt id="webtest.TestResponse.click">
+<tt class="descname">click</tt><big>(</big><em>description=None</em>, <em>linkid=None</em>, <em>href=None</em>, <em>anchor=None</em>, <em>index=None</em>, <em>verbose=False</em>, <em>extra_environ=None</em><big>)</big><a class="headerlink" href="#webtest.TestResponse.click" title="Permalink to this definition">¶</a></dt>
+<dd><p>Click the link as described.  Each of <tt class="docutils literal"><span class="pre">description</span></tt>,
+<tt class="docutils literal"><span class="pre">linkid</span></tt>, and <tt class="docutils literal"><span class="pre">url</span></tt> are <em>patterns</em>, meaning that they are
+either strings (regular expressions), compiled regular
+expressions (objects with a <tt class="docutils literal"><span class="pre">search</span></tt> method), or callables
+returning true or false.</p>
+<p>All the given patterns are ANDed together:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">description</span></tt> is a pattern that matches the contents of the
+anchor (HTML and all &#8211; everything between <tt class="docutils literal"><span class="pre">&lt;a...&gt;</span></tt> and
+<tt class="docutils literal"><span class="pre">&lt;/a&gt;</span></tt>)</li>
+<li><tt class="docutils literal"><span class="pre">linkid</span></tt> is a pattern that matches the <tt class="docutils literal"><span class="pre">id</span></tt> attribute of
+the anchor.  It will receive the empty string if no id is
+given.</li>
+<li><tt class="docutils literal"><span class="pre">href</span></tt> is a pattern that matches the <tt class="docutils literal"><span class="pre">href</span></tt> of the anchor;
+the literal content of that attribute, not the fully qualified
+attribute.</li>
+<li><tt class="docutils literal"><span class="pre">anchor</span></tt> is a pattern that matches the entire anchor, with
+its contents.</li>
+</ul>
+<p>If more than one link matches, then the <tt class="docutils literal"><span class="pre">index</span></tt> link is
+followed.  If <tt class="docutils literal"><span class="pre">index</span></tt> is not given and more than one link
+matches, or if no link matches, then <tt class="docutils literal"><span class="pre">IndexError</span></tt> will be
+raised.</p>
+<p>If you give <tt class="docutils literal"><span class="pre">verbose</span></tt> then messages will be printed about
+each link, and why it does or doesn&#8217;t match.  If you use
+<tt class="docutils literal"><span class="pre">app.click(verbose=True)</span></tt> you&#8217;ll see a list of all the
+links.</p>
+<p>You can use multiple criteria to essentially assert multiple
+aspects about the link, e.g., where the link&#8217;s destination is.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestResponse.clickbutton">
+<tt class="descname">clickbutton</tt><big>(</big><em>description=None</em>, <em>buttonid=None</em>, <em>href=None</em>, <em>button=None</em>, <em>index=None</em>, <em>verbose=False</em><big>)</big><a class="headerlink" href="#webtest.TestResponse.clickbutton" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like <tt class="docutils literal"><span class="pre">.click()</span></tt>, except looks for link-like buttons.
+This kind of button should look like
+<tt class="docutils literal"><span class="pre">&lt;button</span> <span class="pre">onclick=&quot;...location.href='url'...&quot;&gt;</span></tt>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestResponse.follow">
+<tt class="descname">follow</tt><big>(</big><em>**kw</em><big>)</big><a class="headerlink" href="#webtest.TestResponse.follow" title="Permalink to this definition">¶</a></dt>
+<dd><p>If this request is a redirect, follow that redirect.  It
+is an error if this is not a redirect response.  Returns
+another response object.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="webtest.TestResponse.form">
+<tt class="descname">form</tt><a class="headerlink" href="#webtest.TestResponse.form" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a single <tt class="docutils literal"><span class="pre">Form</span></tt> instance; it
+is an error if there are multiple forms on the
+page.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="webtest.TestResponse.forms">
+<tt class="descname">forms</tt><a class="headerlink" href="#webtest.TestResponse.forms" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of &lt;form&gt;s found on the page (instances of
+<tt class="docutils literal"><span class="pre">Form</span></tt>)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestResponse.forms__get">
+<tt class="descname">forms__get</tt><big>(</big><big>)</big><a class="headerlink" href="#webtest.TestResponse.forms__get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary of <tt class="docutils literal"><span class="pre">Form</span></tt> objects.  Indexes are both in
+order (from zero) and by form id (if the form is given an id).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestResponse.goto">
+<tt class="descname">goto</tt><big>(</big><em>href</em>, <em>method='get'</em>, <em>**args</em><big>)</big><a class="headerlink" href="#webtest.TestResponse.goto" title="Permalink to this definition">¶</a></dt>
+<dd><p>Go to the (potentially relative) link <tt class="docutils literal"><span class="pre">href</span></tt>, using the
+given method (<tt class="docutils literal"><span class="pre">'get'</span></tt> or <tt class="docutils literal"><span class="pre">'post'</span></tt>) and any extra arguments
+you want to pass to the <tt class="docutils literal"><span class="pre">app.get()</span></tt> or <tt class="docutils literal"><span class="pre">app.post()</span></tt>
+methods.</p>
+<p>All hostnames and schemes will be ignored.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="webtest.TestResponse.html">
+<tt class="descname">html</tt><a class="headerlink" href="#webtest.TestResponse.html" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the response as a <a class="reference external" href="http://www.crummy.com/software/BeautifulSoup/documentation.html">BeautifulSoup</a>
+object.</p>
+<p>Only works with HTML responses; other content-types raise
+AttributeError.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="webtest.TestResponse.json">
+<tt class="descname">json</tt><a class="headerlink" href="#webtest.TestResponse.json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the response as a JSON response.  You must have
+<a class="reference external" href="http://svn.red-bean.com/bob/simplejson/tags/simplejson-1.7/docs/index.html">simplejson</a>
+installed to use this, or be using a Python version with the
+json module.</p>
+<p>The content type must be application/json to use this.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="webtest.TestResponse.lxml">
+<tt class="descname">lxml</tt><a class="headerlink" href="#webtest.TestResponse.lxml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the response as an <a class="reference external" href="http://codespeak.net/lxml/">lxml object</a>.  You must have lxml installed
+to use this.</p>
+<p>If this is an HTML response and you have lxml 2.x installed,
+then an <tt class="docutils literal"><span class="pre">lxml.html.HTML</span></tt> object will be returned; if you
+have an earlier version of lxml then a <tt class="docutils literal"><span class="pre">lxml.HTML</span></tt> object
+will be returned.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestResponse.mustcontain">
+<tt class="descname">mustcontain</tt><big>(</big><em>*strings</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#webtest.TestResponse.mustcontain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assert that the response contains all of the strings passed
+in as arguments.</p>
+<p>Equivalent to:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">assert</span> <span class="n">string</span> <span class="ow">in</span> <span class="n">res</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="webtest.TestResponse.normal_body">
+<tt class="descname">normal_body</tt><a class="headerlink" href="#webtest.TestResponse.normal_body" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the whitespace-normalized body</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="webtest.TestResponse.pyquery">
+<tt class="descname">pyquery</tt><a class="headerlink" href="#webtest.TestResponse.pyquery" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the response as a <a class="reference external" href="http://pyquery.org/">PyQuery</a> object.</p>
+<p>Only works with HTML and XML responses; other content-types raise
+AttributeError.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.TestResponse.showbrowser">
+<tt class="descname">showbrowser</tt><big>(</big><big>)</big><a class="headerlink" href="#webtest.TestResponse.showbrowser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Show this response in a browser window (for debugging purposes,
+when it&#8217;s hard to read the HTML).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="webtest.TestResponse.unicode_normal_body">
+<tt class="descname">unicode_normal_body</tt><a class="headerlink" href="#webtest.TestResponse.unicode_normal_body" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the whitespace-normalized body, as unicode</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="webtest.TestResponse.xml">
+<tt class="descname">xml</tt><a class="headerlink" href="#webtest.TestResponse.xml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the response as an <a class="reference external" href="http://python.org/doc/current/lib/module-xml.etree.ElementTree.html">ElementTree</a>
+object.</p>
+<p>Only works with XML responses; other content-types raise
+AttributeError</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.TestRequest">
+<em class="property">class </em><tt class="descclassname">webtest.</tt><tt class="descname">TestRequest</tt><big>(</big><em>environ</em>, <em>charset=(No Default)</em>, <em>unicode_errors=(No Default)</em>, <em>decode_param_names=(No Default)</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#webtest.TestRequest" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="webtest.TestRequest.ResponseClass">
+<tt class="descname">ResponseClass</tt><a class="headerlink" href="#webtest.TestRequest.ResponseClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#webtest.TestResponse" title="webtest.TestResponse"><tt class="xref py py-class docutils literal"><span class="pre">TestResponse</span></tt></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.Form">
+<em class="property">class </em><tt class="descclassname">webtest.</tt><tt class="descname">Form</tt><big>(</big><em>response</em>, <em>text</em><big>)</big><a class="headerlink" href="#webtest.Form" title="Permalink to this definition">¶</a></dt>
+<dd><p>This object represents a form that has been found in a page.
+This has a couple useful attributes:</p>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">text</span></tt>:</dt>
+<dd>the full HTML of the form.</dd>
+<dt><tt class="docutils literal"><span class="pre">action</span></tt>:</dt>
+<dd>the relative URI of the action.</dd>
+<dt><tt class="docutils literal"><span class="pre">method</span></tt>:</dt>
+<dd>the method (e.g., <tt class="docutils literal"><span class="pre">'GET'</span></tt>).</dd>
+<dt><tt class="docutils literal"><span class="pre">id</span></tt>:</dt>
+<dd>the id, or None if not given.</dd>
+<dt><tt class="docutils literal"><span class="pre">fields</span></tt>:</dt>
+<dd>a dictionary of fields, each value is a list of fields by
+that name.  <tt class="docutils literal"><span class="pre">&lt;input</span> <span class="pre">type=&quot;radio&quot;&gt;</span></tt> and <tt class="docutils literal"><span class="pre">&lt;select&gt;</span></tt> are
+both represented as single fields with multiple options.</dd>
+</dl>
+<dl class="method">
+<dt id="webtest.Form.get">
+<tt class="descname">get</tt><big>(</big><em>name</em>, <em>index=None</em>, <em>default=&lt;class 'webtest.NoDefault'&gt;</em><big>)</big><a class="headerlink" href="#webtest.Form.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the named/indexed field object, or <tt class="docutils literal"><span class="pre">default</span></tt> if no field
+is found.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.Form.select">
+<tt class="descname">select</tt><big>(</big><em>name</em>, <em>value</em>, <em>index=None</em><big>)</big><a class="headerlink" href="#webtest.Form.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like <tt class="docutils literal"><span class="pre">.set()</span></tt>, except also confirms the target is a
+<tt class="docutils literal"><span class="pre">&lt;select&gt;</span></tt>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.Form.set">
+<tt class="descname">set</tt><big>(</big><em>name</em>, <em>value</em>, <em>index=None</em><big>)</big><a class="headerlink" href="#webtest.Form.set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the given name, using <tt class="docutils literal"><span class="pre">index</span></tt> to disambiguate.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.Form.submit">
+<tt class="descname">submit</tt><big>(</big><em>name=None</em>, <em>index=None</em>, <em>**args</em><big>)</big><a class="headerlink" href="#webtest.Form.submit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Submits the form.  If <tt class="docutils literal"><span class="pre">name</span></tt> is given, then also select that
+button (using <tt class="docutils literal"><span class="pre">index</span></tt> to disambiguate)``.</p>
+<p>Any extra keyword arguments are passed to the <tt class="docutils literal"><span class="pre">.get()</span></tt> or
+<tt class="docutils literal"><span class="pre">.post()</span></tt> method.</p>
+<p>Returns a response object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.Form.submit_fields">
+<tt class="descname">submit_fields</tt><big>(</big><em>name=None</em>, <em>index=None</em><big>)</big><a class="headerlink" href="#webtest.Form.submit_fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of <tt class="docutils literal"><span class="pre">[(name,</span> <span class="pre">value),</span> <span class="pre">...]</span></tt> for the current
+state of the form.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.Form.upload_fields">
+<tt class="descname">upload_fields</tt><big>(</big><big>)</big><a class="headerlink" href="#webtest.Form.upload_fields" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Return a list of file field tuples of the form:</dt>
+<dd>(field name, file name)</dd>
+<dt>or</dt>
+<dd>(field name, file name, file contents).</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.Field">
+<em class="property">class </em><tt class="descclassname">webtest.</tt><tt class="descname">Field</tt><big>(</big><em>form</em>, <em>tag</em>, <em>name</em>, <em>pos</em>, <em>value=None</em>, <em>id=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#webtest.Field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Field object.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.Select">
+<em class="property">class </em><tt class="descclassname">webtest.</tt><tt class="descname">Select</tt><big>(</big><em>*args</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#webtest.Select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Field representing <tt class="docutils literal"><span class="pre">&lt;select&gt;</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.Radio">
+<em class="property">class </em><tt class="descclassname">webtest.</tt><tt class="descname">Radio</tt><big>(</big><em>*args</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#webtest.Radio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Field representing <tt class="docutils literal"><span class="pre">&lt;input</span> <span class="pre">type=&quot;radio&quot;&gt;</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.Checkbox">
+<em class="property">class </em><tt class="descclassname">webtest.</tt><tt class="descname">Checkbox</tt><big>(</big><em>*args</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#webtest.Checkbox" title="Permalink to this definition">¶</a></dt>
+<dd><p>Field representing <tt class="docutils literal"><span class="pre">&lt;input</span> <span class="pre">type=&quot;checkbox&quot;&gt;</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.Text">
+<em class="property">class </em><tt class="descclassname">webtest.</tt><tt class="descname">Text</tt><big>(</big><em>form</em>, <em>tag</em>, <em>name</em>, <em>pos</em>, <em>value=None</em>, <em>id=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#webtest.Text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Field representing <tt class="docutils literal"><span class="pre">&lt;input</span> <span class="pre">type=&quot;text&quot;&gt;</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.Textarea">
+<em class="property">class </em><tt class="descclassname">webtest.</tt><tt class="descname">Textarea</tt><big>(</big><em>form</em>, <em>tag</em>, <em>name</em>, <em>pos</em>, <em>value=None</em>, <em>id=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#webtest.Textarea" title="Permalink to this definition">¶</a></dt>
+<dd><p>Field representing <tt class="docutils literal"><span class="pre">&lt;textarea&gt;</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.Hidden">
+<em class="property">class </em><tt class="descclassname">webtest.</tt><tt class="descname">Hidden</tt><big>(</big><em>form</em>, <em>tag</em>, <em>name</em>, <em>pos</em>, <em>value=None</em>, <em>id=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#webtest.Hidden" title="Permalink to this definition">¶</a></dt>
+<dd><p>Field representing <tt class="docutils literal"><span class="pre">&lt;input</span> <span class="pre">type=&quot;hidden&quot;&gt;</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.Submit">
+<em class="property">class </em><tt class="descclassname">webtest.</tt><tt class="descname">Submit</tt><big>(</big><em>form</em>, <em>tag</em>, <em>name</em>, <em>pos</em>, <em>value=None</em>, <em>id=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#webtest.Submit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Field representing <tt class="docutils literal"><span class="pre">&lt;input</span> <span class="pre">type=&quot;submit&quot;&gt;</span></tt> and <tt class="docutils literal"><span class="pre">&lt;button&gt;</span></tt></p>
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#"><tt class="docutils literal"><span class="pre">webtest</span></tt> &#8211; Functional Testing of Web Applications</a><ul>
+<li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li><a class="reference internal" href="#return-values">Return Values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../license.html"
+                        title="previous chapter">License</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/modules/webtest.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../license.html" title="License"
+             >previous</a> |</li>
+        <li><a href="../index.html">WebTest v1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008, Ian Bicking.
+      Last updated on Aug 05, 2011.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>

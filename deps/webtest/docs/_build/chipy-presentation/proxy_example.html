@@ -1,0 +1,187 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>&lt;no title&gt; &mdash; WebTest v1.2 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="WebTest v1.2 documentation" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">WebTest v1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">wsgiproxy.exactproxy</span> <span class="kn">import</span> <span class="n">proxy_exact_request</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">webtest</span> <span class="kn">import</span> <span class="n">TestApp</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">app</span> <span class="o">=</span> <span class="n">TestApp</span><span class="p">(</span><span class="n">proxy_exact_request</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">resp</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;http://python.org&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">resp</span>
+<span class="go">&lt;200 OK text/html body=&#39;&lt;!DOCTYPE...\n\n&#39;/15978&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">resp</span>
+<span class="go">Response: 200 OK</span>
+<span class="go">Date: ...</span>
+<span class="go">Server: Apache/2.2.3 (Debian) DAV/2 SVN/1.4.2 mod_ssl/2.2.3 OpenSSL/0.9.8c</span>
+<span class="go">Last-Modified: ...</span>
+<span class="go">ETag: ...</span>
+<span class="go">Accept-Ranges: bytes</span>
+<span class="go">Content-Type: text/html</span>
+<span class="go">Content-Length: ...</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">wsgifilter.proxyapp</span> <span class="kn">import</span> <span class="n">DebugHeaders</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">app</span> <span class="o">=</span> <span class="n">TestApp</span><span class="p">(</span><span class="n">DebugHeaders</span><span class="p">(</span><span class="n">proxy_exact_request</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;http://python.org/&#39;</span><span class="p">)</span>
+<span class="go">Incoming headers: (GET http://python.org/ SCRIPT_NAME=&#39;&#39;)</span>
+<span class="go">  Host: python.org:80</span>
+<span class="go">Outgoing headers: (200 OK)</span>
+<span class="go">  Date: ...</span>
+<span class="go">  Server: Apache/2.2.3 (Debian) DAV/2 SVN/1.4.2 mod_ssl/2.2.3 OpenSSL/0.9.8c</span>
+<span class="go">  Last-Modified: ...</span>
+<span class="go">  Etag: ...</span>
+<span class="go">  Accept-Ranges: bytes</span>
+<span class="go">  Content-Length: ...</span>
+<span class="go">  Content-Type: text/html</span>
+<span class="go">&lt;200 OK text/html body=&#39;&lt;!DOCTYPE...\n\n&#39;/15978&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">app</span> <span class="o">=</span> <span class="n">TestApp</span><span class="p">(</span><span class="n">proxy_exact_request</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">resp</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;http://python.org&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">resp</span><span class="o">.</span><span class="n">lxml</span>
+<span class="go">&lt;Element html at ...&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">resp</span><span class="o">.</span><span class="n">lxml</span><span class="o">.</span><span class="n">xpath</span><span class="p">(</span><span class="s">&#39;//a&#39;</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;href&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;http:&#39;</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="k">continue</span>
+<span class="gp">... </span>    <span class="k">print</span> <span class="n">a</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;href&#39;</span><span class="p">),</span> <span class="n">a</span><span class="o">.</span><span class="n">text_content</span><span class="p">()</span>
+<span class="go">/</span>
+<span class="go">#left-hand-navigation</span>
+<span class="go">#content-body</span>
+<span class="go">/search Advanced Search</span>
+<span class="go">/about/ About</span>
+<span class="go">/news/ News</span>
+<span class="go">/doc/ Documentation</span>
+<span class="go">/download/ Download</span>
+<span class="go">/community/ Community</span>
+<span class="go">/psf/ Foundation</span>
+<span class="go">/dev/ Core Development</span>
+<span class="go">/links/ Links</span>
+<span class="go">/download/releases/2.5.1 Quick Links (2.5.1)</span>
+<span class="go">/ftp/python/2.5.1/python-2.5.1.msi Windows Installer</span>
+<span class="go">/ftp/python/2.5.1/Python-2.5.1.tar.bz2 Source Distribution</span>
+<span class="go">/community/jobs Python Jobs</span>
+<span class="go">/psf/donations/ Donate to the PSF</span>
+<span class="go">/about/success/usa</span>
+<span class="go">&lt;BLANKLINE&gt;</span>
+<span class="go">about/success/rackspace Rackspace</span>
+<span class="go">about/success/ilm Industrial Light and Magic</span>
+<span class="go">about/success/astra AstraZeneca</span>
+<span class="go">about/success/honeywell Honeywell</span>
+<span class="go">about/success and many others</span>
+<span class="go">/about/quotes more...</span>
+<span class="go">/doc/topics/database Databases</span>
+<span class="go">/doc/topics/database/modules Others</span>
+<span class="go">/community/sigs/current/edu-sig Education</span>
+<span class="go">/about/apps Networking</span>
+<span class="go">/about/apps Software Development</span>
+<span class="go">/about/apps Game Development</span>
+<span class="go">/about/apps more...</span>
+<span class="go">/psf/license open source license</span>
+<span class="go">/psf Python Software Foundation (PSF)</span>
+<span class="go">/about Read more</span>
+<span class="go">/download try Python now</span>
+<span class="go">/download/releases/3.0 second alpha release</span>
+<span class="go">/download/releases/3.0 first alpha release</span>
+<span class="go">/channews.rdf RSS</span>
+<span class="go">/about/website Website maintained by the Python community</span>
+<span class="go">/psf Python Software Foundation</span>
+<span class="go">/about/legal Legal Statements</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">resp</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">click</span><span class="p">(</span><span class="s">&#39;Legal Statements&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">resp</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">url</span>
+<span class="go">&#39;http://python.org/about/legal&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">resp</span><span class="o">.</span><span class="n">status</span>
+<span class="go">&#39;301 Moved Permanently&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">resp</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">follow</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c">#resp.showbrowser()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">resp</span><span class="o">.</span><span class="n">html</span><span class="o">.</span><span class="n">html</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">title</span>
+<span class="go">&lt;title&gt;Legal Statements&lt;/title&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">re</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">r&#39;&lt;title&gt;(.*?)&lt;/title&gt;&#39;</span><span class="p">,</span> <span class="n">resp</span><span class="o">.</span><span class="n">body</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">&#39;Legal Statements&#39;</span>
+</pre></div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/chipy-presentation/proxy_example.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">WebTest v1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008, Ian Bicking.
+      Last updated on Aug 05, 2011.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>

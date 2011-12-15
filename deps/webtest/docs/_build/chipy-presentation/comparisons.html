@@ -1,0 +1,159 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>&lt;no title&gt; &mdash; WebTest v1.2 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="WebTest v1.2 documentation" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">WebTest v1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <dl class="docutils">
+<dt>Zope:</dt>
+<dd><p class="first"><a class="reference external" href="http://cheeseshop.python.org/pypi/zope.testbrowser/3.4.2">http://cheeseshop.python.org/pypi/zope.testbrowser/3.4.2</a></p>
+<p class="last">Browser-centric (vs. application-centric)
+Slightly verbose
+Works over HTTP (WSGI with wsgi_intercept)
+Has forms, etc (Mechanize)
+Next best (after WebTest)</p>
+</dd>
+<dt>Django:</dt>
+<dd><p class="first"><a class="reference external" href="http://www.djangoproject.com/documentation/testing/">http://www.djangoproject.com/documentation/testing/</a></p>
+<p class="last">Reasonably system
+Slightly verbose
+Works over Django request system (not WSGI)
+Slightly leaky
+No forms</p>
+</dd>
+<dt>CherryPy/TurboGears 1:</dt>
+<dd><p class="first"><a class="reference external" href="http://docs.turbogears.org/1.0/Testing#testing-your-view">http://docs.turbogears.org/1.0/Testing#testing-your-view</a></p>
+<p class="last">Very leaky!
+Tests happen via side effects
+Global objects everywhere
+Can call directly into controllers
+No forms</p>
+</dd>
+<dt>Rails:</dt>
+<dd><p class="first"><a class="reference external" href="http://manuals.rubyonrails.com/read/chapter/28">http://manuals.rubyonrails.com/read/chapter/28</a></p>
+<p>Call directly into controller
+Actually instantiate the controller in your tests
+The main functionality is in a TestCase subclass
+Has some XML/HTML inspection
+Vigorous debate on best practice:</p>
+<blockquote class="last">
+<div><a class="reference external" href="http://www.anarchogeek.com/articles/2007/9/16/rails-where-the-boundries-are-pushed">http://www.anarchogeek.com/articles/2007/9/16/rails-where-the-boundries-are-pushed</a>
+This is not a good thing
+Mocks all over the place :(</div></blockquote>
+</dd>
+</dl>
+<hr class="docutils" />
+<dl class="docutils">
+<dt>Twill:</dt>
+<dd><p class="first"><a class="reference external" href="http://twill.idyll.org/">http://twill.idyll.org/</a></p>
+<p class="last">Works over HTTP (WSGI with wsgi_intercept)
+Lots of form support (Mechanize)
+Simple-looking tests
+Not a complete language</p>
+</dd>
+<dt>Selenium:</dt>
+<dd><p class="first"><a class="reference external" href="http://www.openqa.org/selenium/">http://www.openqa.org/selenium/</a></p>
+<p class="last">Works in a browser
+Awkward language
+Recorders exist
+Satisfying to watch run</p>
+</dd>
+<dt>Windmill:</dt>
+<dd><p class="first"><a class="reference external" href="http://windmill.osafoundation.org/">http://windmill.osafoundation.org/</a></p>
+<p>Like a mix of Twill and Selenium?
+Uses a browser IDE like Selenium</p>
+<blockquote>
+<div>Fancy Javascript recorder?</div></blockquote>
+<p>Experimental command-line
+Browser can report back to code, like the (confusing) &#8220;drive&#8221; mode</p>
+<blockquote class="last">
+<div>in Selenium</div></blockquote>
+</dd>
+</dl>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/chipy-presentation/comparisons.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">WebTest v1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008, Ian Bicking.
+      Last updated on Aug 05, 2011.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>
