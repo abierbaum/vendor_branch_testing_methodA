@@ -8,6 +8,8 @@ Method used:
   * Keep copies of all vendor drops in that branch in the directory structure we want
   * Merge 'vendor' into 'dev' to get all changes
 
+  git checkout vendor
+  git pull
   git checkout dev
   git merge --no-ff vendor
   git push                    # To upload to server
