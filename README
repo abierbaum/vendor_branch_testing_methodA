@@ -11,7 +11,7 @@ Method used:
   git checkout vendor
   git pull
   git checkout dev
-  git merge --no-ff vendor
+  git merge --no-ff -m "Merge in of package x.y.z from vendor" vendor
   git push                    # To upload to server
 
   * As updates happen:
