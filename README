@@ -1,1 +1,12 @@
 Testing of a method for vendor branch tracking.
+
+
+Method used:
+
+  * Created a 'vendor' branch off base of repository
+     * note: may be able to do with no parent
+  * Create the structure we want for all deps in that branch
+  * Merge 'vendor' into 'dev' to get all changes
+  * As updates happen:
+     * Go into vendor
+     
