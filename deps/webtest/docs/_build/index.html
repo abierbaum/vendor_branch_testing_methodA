@@ -1,0 +1,478 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Testing Applications with WebTest &mdash; WebTest v1.2 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="WebTest v1.2 documentation" href="#" />
+    <link rel="next" title="News" href="news.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="news.html" title="News"
+             accesskey="N">next</a> |</li>
+        <li><a href="#">WebTest v1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="testing-applications-with-webtest">
+<h1><a class="toc-backref" href="#id3">Testing Applications with WebTest</a><a class="headerlink" href="#testing-applications-with-webtest" title="Permalink to this headline">¶</a></h1>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">author:</th><td class="field-body">Ian Bicking &lt;<a class="reference external" href="mailto:ianb&#37;&#52;&#48;colorstudy&#46;com">ianb<span>&#64;</span>colorstudy<span>&#46;</span>com</a>&gt;</td>
+</tr>
+</tbody>
+</table>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="news.html">News</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="news.html#id1">1.2.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#id4">1.2.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#id6">1.2.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#id7">1.2.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#id9">1.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#id10">1.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#id11">1.0.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#id12">1.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#id13">0.9</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/webtest.html"><tt class="docutils literal"><span class="pre">webtest</span></tt> &#8211; Functional Testing of Web Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/webtest.html#module-contents">Module Contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/webtest.html#return-values">Return Values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#testing-applications-with-webtest" id="id3">Testing Applications with WebTest</a><ul>
+<li><a class="reference internal" href="#status-license" id="id4">Status &amp; License</a></li>
+<li><a class="reference internal" href="#what-this-does" id="id5">What This Does</a></li>
+<li><a class="reference internal" href="#testapp" id="id6">TestApp</a><ul>
+<li><a class="reference internal" href="#making-requests" id="id7">Making Requests</a><ul>
+<li><a class="reference internal" href="#modifying-the-environment-simulating-authentication" id="id8">Modifying the Environment &amp; Simulating Authentication</a></li>
+<li><a class="reference internal" href="#what-is-tested-by-default" id="id9">What Is Tested By Default</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#the-response-object" id="id10">The Response Object</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id2" id="id11">Form Submissions</a></li>
+<li><a class="reference internal" href="#parsing-the-body" id="id12">Parsing the Body</a></li>
+<li><a class="reference internal" href="#framework-hooks" id="id13">Framework Hooks</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="status-license">
+<h2><a class="toc-backref" href="#id4">Status &amp; License</a><a class="headerlink" href="#status-license" title="Permalink to this headline">¶</a></h2>
+<p>WebTest is an extraction of <tt class="docutils literal"><span class="pre">paste.fixture.TestApp</span></tt>, rewriting
+portions to use <a class="reference external" href="http://docs.webob.org/">WebOb</a>.  It is under
+active development as part of the Paste cloud of packages.</p>
+<p>Feedback and discussion should take place on the <a class="reference external" href="http://pythonpaste.org/community/">Paste list</a>, and bugs should go into the
+<a class="reference external" href="https://bitbucket.org/ianb/webtest/issues?status=new&amp;status=open">Bitbucket tracker</a>.</p>
+<p>This library is licensed under an <a class="reference external" href="license.html">MIT-style license</a>.</p>
+<p>WebTest is in an mercurial repository at <a class="reference external" href="https://bitbucket.org/ianb/webtest">http://bitbucket.org/ianb/webtest</a>.  You can check it out with:</p>
+<div class="highlight-python"><pre>$ hg clone https://bitbucket.org/ianb/webtest WebTest</pre>
+</div>
+</div>
+<div class="section" id="what-this-does">
+<h2><a class="toc-backref" href="#id5">What This Does</a><a class="headerlink" href="#what-this-does" title="Permalink to this headline">¶</a></h2>
+<p>WebTest helps you test your WSGI-based web applications.  This can be
+any application that has a WSGI interface, including an application
+written in a framework that supports WSGI (which includes most
+actively developed Python web frameworks &#8211; almost anything that even
+nominally supports WSGI should be testable).</p>
+<p>With this you can test your web applications without starting an HTTP
+server, and without poking into the web framework shortcutting
+pieces of your application that need to be tested.  The tests WebTest
+runs are entirely equivalent to how a WSGI HTTP server would call an
+application.  By testing the full stack of your application, the
+WebTest testing model is sometimes called a <em>functional test</em>,
+<em>integration test</em>, or <em>acceptance test</em> (though the latter two are
+not particularly good descriptions).  This is in contrast to a <em>unit
+test</em> which tests a particular piece of functionality in your
+application.  While complex programming tasks are often is suited to
+unit tests, template logic and simple web programming is often best
+done with functional tests; and regardless of the presence of unit
+tests, no testing strategy is complete without high-level tests to
+ensure the entire programming system works together.</p>
+<p>WebTest helps you create tests by providing a convenient interface to
+run WSGI applications and verify the output.</p>
+</div>
+<div class="section" id="testapp">
+<h2><a class="toc-backref" href="#id6">TestApp</a><a class="headerlink" href="#testapp" title="Permalink to this headline">¶</a></h2>
+<p>The most important object in WebTest is <tt class="docutils literal"><span class="pre">webtest.TestApp</span></tt>, the
+wrapper for WSGI applications.  To use it, you simply instantiate it
+with your WSGI application.  (Note: if your WSGI application requires
+any configuration, you must set that up manually in your tests.)</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">webtest</span> <span class="kn">import</span> <span class="n">TestApp</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">webob</span> <span class="kn">import</span> <span class="n">Request</span><span class="p">,</span> <span class="n">Response</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">paste.urlmap</span> <span class="kn">import</span> <span class="n">URLMap</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">map_app</span> <span class="o">=</span> <span class="n">URLMap</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form_html</span> <span class="o">=</span> <span class="n">map_app</span><span class="p">[</span><span class="s">&#39;/form.html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Response</span><span class="p">(</span><span class="n">content_type</span><span class="o">=</span><span class="s">&#39;text/html&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form_html</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="s">&#39;&#39;&#39;&lt;html&gt;&lt;body&gt;</span>
+<span class="gp">... </span><span class="s">&lt;form action=&quot;/form-submit&quot; method=&quot;POST&quot;&gt;</span>
+<span class="gp">... </span><span class="s">  &lt;input type=&quot;text&quot; name=&quot;name&quot;&gt;</span>
+<span class="gp">... </span><span class="s">  &lt;input type=&quot;submit&quot; name=&quot;submit&quot; value=&quot;Submit!&quot;&gt;</span>
+<span class="gp">... </span><span class="s">&lt;/form&gt;&lt;/body&gt;&lt;/html&gt;&#39;&#39;&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">app</span> <span class="o">=</span> <span class="n">TestApp</span><span class="p">(</span><span class="n">map_app</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;/form.html&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">status</span>
+<span class="go">&#39;200 OK&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">form</span>
+<span class="go">&lt;webtest.Form object at ...&gt;</span>
+</pre></div>
+</div>
+<div class="section" id="making-requests">
+<h3><a class="toc-backref" href="#id7">Making Requests</a><a class="headerlink" href="#making-requests" title="Permalink to this headline">¶</a></h3>
+<p>To make a request, use:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;/path&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">headers</span><span class="p">],</span> <span class="p">[</span><span class="n">extra_environ</span><span class="p">],</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This does a request for <tt class="docutils literal"><span class="pre">/path</span></tt>, with any extra headers or WSGI
+environment keys that you indicate.  This returns a response object,
+based on <a class="reference external" href="http://docs.webob.org/en/latest/reference.html#response">webob.Response</a>.  It has some
+additional methods to make it easier to test.</p>
+<p>If you want to do a POST request, use:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s">&#39;/path&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s">&#39;vars&#39;</span><span class="p">:</span> <span class="s">&#39;values&#39;</span><span class="p">},</span> <span class="p">[</span><span class="n">headers</span><span class="p">],</span> <span class="p">[</span><span class="n">extra_environ</span><span class="p">],</span>
+         <span class="p">[</span><span class="n">upload_files</span><span class="p">],</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Specifically the second argument is the <em>body</em> of the request.  You
+can pass in a dictionary (or dictionary-like object), or a string
+body (dictionary objects are turned into HTML form submissions).</p>
+<p>You can also pass in the keyword argument upload_files, which is a
+list of <tt class="docutils literal"><span class="pre">[(fieldname,</span> <span class="pre">filename,</span> <span class="pre">fild_content)]</span></tt>.  File uploads use a
+different form submission data type to pass the structured data.</p>
+<p>For other verbs you can use:</p>
+<blockquote>
+<div>app.put(path, params, ...)
+app.delete(path, ...)</div></blockquote>
+<p>These do PUT and DELETE requests.</p>
+<div class="section" id="modifying-the-environment-simulating-authentication">
+<h4><a class="toc-backref" href="#id8">Modifying the Environment &amp; Simulating Authentication</a><a class="headerlink" href="#modifying-the-environment-simulating-authentication" title="Permalink to this headline">¶</a></h4>
+<p>The best way to simulate authentication is if your application looks
+in <tt class="docutils literal"><span class="pre">environ['REMOTE_USER']</span></tt> to see if someone is authenticated.
+Then you can simply set that value, like:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;/secret&#39;</span><span class="p">,</span> <span class="n">extra_environ</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">REMOTE_USER</span><span class="o">=</span><span class="s">&#39;bob&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>If you want <em>all</em> your requests to have this key, do:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">app</span> <span class="o">=</span> <span class="n">TestApp</span><span class="p">(</span><span class="n">my_app</span><span class="p">,</span> <span class="n">extra_environ</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">REMOTE_USER</span><span class="o">=</span><span class="s">&#39;bob&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="what-is-tested-by-default">
+<h4><a class="toc-backref" href="#id9">What Is Tested By Default</a><a class="headerlink" href="#what-is-tested-by-default" title="Permalink to this headline">¶</a></h4>
+<p>A key concept behind WebTest is that there&#8217;s lots of things you
+shouldn&#8217;t have to check everytime you do a request.  It is assumed
+that the response will either be a 2xx or 3xx response; if it isn&#8217;t an
+exception will be raised (you can override this for a request, of
+course).  The WSGI application is tested for WSGI compliance with
+a slightly modified version of <a class="reference external" href="http://python.org/doc/current/lib/module-wsgiref.validate.html">wsgiref.validate</a>
+(modified to support arguments to <tt class="docutils literal"><span class="pre">InputWrapper.readline</span></tt>)
+automatically.  Also it checks that nothing is printed to the
+<tt class="docutils literal"><span class="pre">environ['wsgi.errors']</span></tt> error stream, which typically indicates a
+problem (one that would be non-fatal in a production situation, but if
+you are testing is something you should avoid).</p>
+<p>To indicate another status is expected, use the keyword argument
+<tt class="docutils literal"><span class="pre">status=404</span></tt> to (for example) check that it is a 404 status, or
+<tt class="docutils literal"><span class="pre">status=&quot;*&quot;</span></tt> to allow any status.</p>
+<p>If you expect errors to be printed, use <tt class="docutils literal"><span class="pre">expect_errors=True</span></tt>.</p>
+</div>
+</div>
+<div class="section" id="the-response-object">
+<h3><a class="toc-backref" href="#id10">The Response Object</a><a class="headerlink" href="#the-response-object" title="Permalink to this headline">¶</a></h3>
+<p>The response object is based on <a class="reference external" href="http://docs.webob.org/en/latest/reference.html#response">webob.Response</a> with some additions
+to help with testing.</p>
+<p>The inherited attributes that are most interesting:</p>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">response.status</span></tt>:</dt>
+<dd>The text status of the response, e.g., <tt class="docutils literal"><span class="pre">&quot;200</span> <span class="pre">OK&quot;</span></tt>.</dd>
+<dt><tt class="docutils literal"><span class="pre">response.headers</span></tt>:</dt>
+<dd>A dictionary-like object of the headers in the response.</dd>
+<dt><tt class="docutils literal"><span class="pre">response.body</span></tt>:</dt>
+<dd>The text body of the response.</dd>
+<dt><tt class="docutils literal"><span class="pre">response.unicode_body</span></tt>:</dt>
+<dd>The unicode text body of the response.</dd>
+<dt><tt class="docutils literal"><span class="pre">response.request</span></tt>:</dt>
+<dd>The <a class="reference external" href="http://docs.webob.org/en/latest/reference.html#request">webob.Request object</a> used to generate
+this response.</dd>
+</dl>
+<p>The added methods:</p>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">response.follow(**kw)</span></tt>:</dt>
+<dd>Follows the redirect, returning the new response.  It is an error
+if this response wasn&#8217;t a redirect.  Any keyword arguments are
+passed to <tt class="docutils literal"><span class="pre">app.get</span></tt> (e.g., <tt class="docutils literal"><span class="pre">status</span></tt>).</dd>
+<dt><tt class="docutils literal"><span class="pre">x</span> <span class="pre">in</span> <span class="pre">response</span></tt>:</dt>
+<dd>Returns True if the string is found in the response body.
+Whitespace is normalized for this test.</dd>
+<dt><tt class="docutils literal"><span class="pre">response.mustcontain(string1,</span> <span class="pre">string2,</span> <span class="pre">...)</span></tt>:</dt>
+<dd>Raises an error if any of the strings are not found in the
+response.  It also prints out the response in that case, so
+you can see the real response.</dd>
+<dt><tt class="docutils literal"><span class="pre">response.showbrowser()</span></tt>:</dt>
+<dd>Opens the HTML response in a browser; useful for debugging.</dd>
+<dt><tt class="docutils literal"><span class="pre">str(response)</span></tt>:</dt>
+<dd>Gives a slightly-compacted version of the response.  This is
+compacted to remove newlines, making it easier to use with
+<a class="reference external" href="http://python.org/doc/current/lib/module-doctest.html">doctest</a></dd>
+<dt><tt class="docutils literal"><span class="pre">response.click(description=None,</span> <span class="pre">linkid=None,</span> <span class="pre">href=None,</span> <span class="pre">anchor=None,</span> <span class="pre">index=None,</span> <span class="pre">verbose=False)</span></tt>:</dt>
+<dd>Clicks the described link (<a class="reference external" href="./class-webtest.TestResponse.html#click">see docstring for more</a>)</dd>
+<dt><tt class="docutils literal"><span class="pre">response.forms</span></tt>:</dt>
+<dd>Return a dictionary of forms; you can use both indexes (refer to
+the forms in order) or the string ids of forms (if you&#8217;ve given
+them ids) to identify the form.  See <a class="reference external" href="#form-submissions">Form Submissions</a> for
+more on the form objects.</dd>
+<dt><tt class="docutils literal"><span class="pre">response.form</span></tt>:</dt>
+<dd>If there is just a single form, this returns that.  It is an error
+if you use this and there are multiple forms.</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="id2">
+<h2><a class="toc-backref" href="#id11">Form Submissions</a><a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>You can fill out and submit forms from your tests.  First you get the
+form:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;/form.html&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">form</span>
+</pre></div>
+</div>
+<p>Then you fill it in fields:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">form</span><span class="o">.</span><span class="n">action</span>
+<span class="go">/form-submit</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">form</span><span class="o">.</span><span class="n">method</span>
+<span class="go">POST</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># dict of fields</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fields</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">();</span> <span class="n">fields</span><span class="o">.</span><span class="n">sort</span><span class="p">();</span> <span class="n">fields</span>
+<span class="go">[(u&#39;name&#39;, [&lt;webtest.Text object at ...&gt;]), (u&#39;submit&#39;, [&lt;webtest.Submit object at ...&gt;])]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;Bob&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># When names don&#39;t point to a single field:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">form</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;name&#39;</span><span class="p">,</span> <span class="s">&#39;Bob&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Then you can submit.  First we&#8217;ll put up a simple test app to catch
+the response:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">webtest.debugapp</span> <span class="kn">import</span> <span class="n">debug_app</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">map_app</span><span class="p">[</span><span class="s">&#39;/form-submit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">debug_app</span>
+</pre></div>
+</div>
+<p>Then submit:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c"># Submit with no particular submit button pressed:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Or submit a button:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="s">&#39;submit&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">res</span>
+<span class="go">Response: 200 OK</span>
+<span class="go">Content-Type: text/plain</span>
+<span class="gp">...</span>
+<span class="go">-- Body ----------</span>
+<span class="go">submit=Submit%21&amp;name=Bob</span>
+</pre></div>
+</div>
+<p>Select fields can only be set to valid values (i.e., values in an
+<tt class="docutils literal"><span class="pre">&lt;option&gt;</span></tt>) but you can also use
+<tt class="docutils literal"><span class="pre">form['select-field'].force_value('value')</span></tt> to enter values not
+present in an option.</p>
+</div>
+<div class="section" id="parsing-the-body">
+<h2><a class="toc-backref" href="#id12">Parsing the Body</a><a class="headerlink" href="#parsing-the-body" title="Permalink to this headline">¶</a></h2>
+<p>There are several ways to get parsed versions of the response.  These
+are the attributes:</p>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">response.html</span></tt>:</dt>
+<dd>Return a <a class="reference external" href="http://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a> version of the
+response body.</dd>
+<dt><tt class="docutils literal"><span class="pre">response.xml</span></tt>:</dt>
+<dd>Return an <a class="reference external" href="http://python.org/doc/current/lib/module-xml.etree.ElementTree.html">ElementTree</a>
+version of the response body.</dd>
+<dt><tt class="docutils literal"><span class="pre">response.lxml</span></tt>:</dt>
+<dd>Return an <a class="reference external" href="http://codespeak.net/lxml/">lxml</a> version of the
+response body.</dd>
+<dt><tt class="docutils literal"><span class="pre">response.pyquery</span></tt>:</dt>
+<dd>Return an <a class="reference external" href="http://pyquery.org/">PyQuery</a> version of the
+response body.</dd>
+<dt><tt class="docutils literal"><span class="pre">response.json</span></tt>:</dt>
+<dd>Return the parsed JSON (parsed with <a class="reference external" href="http://svn.red-bean.com/bob/simplejson/tags/simplejson-1.7/docs/index.html">simplejson</a>).</dd>
+</dl>
+<p>In each case the content-type must be correct or an AttributeError is
+raised.  If you do not have the necessary library installed (none of
+them are required by WebTest), you will get an ImportError.</p>
+<p>Examples:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">webtest</span> <span class="kn">import</span> <span class="n">TestRequest</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">webtest</span> <span class="kn">import</span> <span class="n">TestResponse</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">TestResponse</span><span class="p">(</span><span class="n">content_type</span><span class="o">=</span><span class="s">&#39;text/html&#39;</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="s">&#39;&#39;&#39;</span>
+<span class="gp">... </span><span class="s">&lt;html&gt;&lt;body&gt;&lt;div id=&quot;content&quot;&gt;hey!&lt;/div&gt;&lt;/body&gt;&#39;&#39;&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">request</span> <span class="o">=</span> <span class="n">TestRequest</span><span class="o">.</span><span class="n">blank</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">html</span>
+<span class="go">&lt;BLANKLINE&gt;</span>
+<span class="go">&lt;html&gt;&lt;body&gt;&lt;div id=&quot;content&quot;&gt;hey!&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">html</span><span class="o">.</span><span class="n">__class__</span>
+<span class="go">&lt;class &#39;BeautifulSoup.BeautifulSoup&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">html</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">div</span><span class="o">.</span><span class="n">string</span>
+<span class="go">u&#39;hey!&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">lxml</span>
+<span class="go">&lt;Element html at ...&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">lxml</span><span class="o">.</span><span class="n">xpath</span><span class="p">(</span><span class="s">&#39;//body/div&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span>
+<span class="go">&#39;hey!&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">TestResponse</span><span class="p">(</span><span class="n">content_type</span><span class="o">=</span><span class="s">&#39;application/json&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                   <span class="n">body</span><span class="o">=</span><span class="s">&#39;{&quot;a&quot;:1,&quot;b&quot;:2}&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">request</span> <span class="o">=</span> <span class="n">TestRequest</span><span class="o">.</span><span class="n">blank</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">json</span>
+<span class="go">{u&#39;a&#39;: 1, u&#39;b&#39;: 2}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">TestResponse</span><span class="p">(</span><span class="n">content_type</span><span class="o">=</span><span class="s">&#39;application/xml&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                   <span class="n">body</span><span class="o">=</span><span class="s">&#39;&lt;xml&gt;&lt;message&gt;hey!&lt;/message&gt;&lt;/xml&gt;&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">request</span> <span class="o">=</span> <span class="n">TestRequest</span><span class="o">.</span><span class="n">blank</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">xml</span>
+<span class="go">&lt;Element xml at ...&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">xml</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tag</span>
+<span class="go">&#39;message&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">xml</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span>
+<span class="go">&#39;hey!&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">lxml</span>
+<span class="go">&lt;Element xml at ...&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">lxml</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tag</span>
+<span class="go">&#39;message&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">lxml</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span>
+<span class="go">&#39;hey!&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">pyquery</span><span class="p">(</span><span class="s">&#39;message&#39;</span><span class="p">)</span>
+<span class="go">[&lt;message&gt;]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">pyquery</span><span class="p">(</span><span class="s">&#39;message&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">()</span>
+<span class="go">&#39;hey!&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="framework-hooks">
+<h2><a class="toc-backref" href="#id13">Framework Hooks</a><a class="headerlink" href="#framework-hooks" title="Permalink to this headline">¶</a></h2>
+<p>Frameworks can detect that they are in a testing environment by the
+presence (and truth) of the WSGI environmental variable
+<tt class="docutils literal"><span class="pre">&quot;paste.testing&quot;</span></tt> (the key name is inherited from
+<tt class="docutils literal"><span class="pre">paste.fixture</span></tt>).</p>
+<p>More generally, frameworks can detect that something (possibly a test
+fixture) is ready to catch unexpected errors by the presence and truth
+of <tt class="docutils literal"><span class="pre">&quot;paste.throw_errors&quot;</span></tt> (this is sometimes set outside of testing
+fixtures too, when an error-handling middleware is in place).</p>
+<p>Frameworks that want to expose the inner structure of the request may
+use <tt class="docutils literal"><span class="pre">&quot;paste.testing_variables&quot;</span></tt>.  This will be a dictionary &#8211; any
+values put into that dictionary will become attributes of the response
+object.  So if you do <tt class="docutils literal"><span class="pre">env[&quot;paste.testing_variables&quot;]['template']</span> <span class="pre">=</span>
+<span class="pre">template_name</span></tt> in your framework, then <tt class="docutils literal"><span class="pre">response.template</span></tt> will be
+<tt class="docutils literal"><span class="pre">template_name</span></tt>.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Testing Applications with WebTest</a><ul>
+<li><a class="reference internal" href="#status-license">Status &amp; License</a></li>
+<li><a class="reference internal" href="#what-this-does">What This Does</a></li>
+<li><a class="reference internal" href="#testapp">TestApp</a><ul>
+<li><a class="reference internal" href="#making-requests">Making Requests</a><ul>
+<li><a class="reference internal" href="#modifying-the-environment-simulating-authentication">Modifying the Environment &amp; Simulating Authentication</a></li>
+<li><a class="reference internal" href="#what-is-tested-by-default">What Is Tested By Default</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#the-response-object">The Response Object</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id2">Form Submissions</a></li>
+<li><a class="reference internal" href="#parsing-the-body">Parsing the Body</a></li>
+<li><a class="reference internal" href="#framework-hooks">Framework Hooks</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="news.html"
+                        title="next chapter">News</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="news.html" title="News"
+             >next</a> |</li>
+        <li><a href="#">WebTest v1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008, Ian Bicking.
+      Last updated on Aug 05, 2011.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>
