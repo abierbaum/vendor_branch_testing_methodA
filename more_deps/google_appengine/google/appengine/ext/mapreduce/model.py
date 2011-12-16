@@ -50,7 +50,11 @@ import datetime
 import logging
 import math
 import os
-import simplejson
+import random
+try:
+  import json as simplejson
+except ImportError:
+  import simplejson
 import time
 import types
 
@@ -60,7 +64,7 @@ from google.appengine.ext import db
 from google.appengine.ext.mapreduce import context
 from google.appengine.ext.mapreduce import hooks
 from google.appengine.ext.mapreduce import util
-from graphy.backends import google_chart_api
+from google.appengine._internal.graphy.backends import google_chart_api
 
 
 
@@ -228,8 +232,10 @@ def _get_descending_key(gettime=time.time):
     A string with a time descending key.
   """
   now_descending = int((_FUTURE_TIME - gettime()) * 100)
-  return "%d%s" % (now_descending,
-                   os.environ.get("REQUEST_ID_HASH", "FFFFFFFF"))
+  request_id_hash = os.environ.get("REQUEST_ID_HASH")
+  if not request_id_hash:
+    request_id_hash = str(random.getrandbits(32))
+  return "%d%s" % (now_descending, request_id_hash)
 
 
 class CountersMap(JsonMixin):
@@ -804,16 +810,28 @@ class ShardState(db.Model):
     return cls.get_by_key_name(shard_id)
 
   @classmethod
-  def find_by_mapreduce_id(cls, mapreduce_id):
+  def find_by_mapreduce_state(cls, mapreduce_state):
     """Find all shard states for given mapreduce.
 
     Args:
-      mapreduce_id: mapreduce id.
+      mapreduce_state: MapreduceState instance
 
     Returns:
-      iterable of all ShardState for given mapreduce id.
+      iterable of all ShardState for given mapreduce.
     """
-    return cls.all().filter("mapreduce_id =", mapreduce_id).fetch(99999)
+    keys = []
+    for i in range(mapreduce_state.mapreduce_spec.mapper.shard_count):
+      shard_id = cls.shard_id_from_number(mapreduce_state.key().name(), i)
+      keys.append(cls.get_key_by_shard_id(shard_id))
+    return [state for state in db.get(keys) if state]
+
+  @classmethod
+  def find_by_mapreduce_id(cls, mapreduce_id):
+    logging.error(
+        "ShardState.find_by_mapreduce_id method may be inconsistent. " +
+        "ShardState.find_by_mapreduce_state should be used instead.")
+    return cls.all().filter(
+        "mapreduce_id =", mapreduce_id).fetch(99999)
 
   @classmethod
   def create_new(cls, mapreduce_id, shard_number):

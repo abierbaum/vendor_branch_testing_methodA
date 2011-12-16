@@ -89,7 +89,7 @@ NAG_FILE = '.appcfg_nag'
 MAX_LOG_LEVEL = 4
 
 
-MAX_BATCH_SIZE = 1000000
+MAX_BATCH_SIZE = 3200000
 MAX_BATCH_COUNT = 100
 MAX_BATCH_FILE_SIZE = 200000
 BATCH_OVERHEAD = 500
@@ -108,15 +108,21 @@ PREFIXED_BY_ADMIN_CONSOLE_RE = '^(?:admin-console)(.*)'
 SDK_PRODUCT = 'appcfg_py'
 
 
-
-_api_versions = os.environ.get('GOOGLE_TEST_API_VERSIONS', '1')
-_options = validation.Options(*_api_versions.split(','))
-appinfo.AppInfoExternal.ATTRIBUTES[appinfo.API_VERSION] = _options
-del _api_versions, _options
-
-
 DAY = 24*3600
 SUNDAY = 6
+
+SUPPORTED_RUNTIMES = ('go', 'python', 'python27')
+
+
+
+
+MB = 1024 * 1024
+DEFAULT_RESOURCE_LIMITS = {
+    'max_file_size': 32 * MB,
+    'max_blob_size': 32 * MB,
+    'max_total_file_size': 150 * MB,
+    'max_file_count': 10000,
+}
 
 
 def PrintUpdate(msg):
@@ -139,6 +145,18 @@ def StatusUpdate(msg):
 def ErrorUpdate(msg):
   """Print an error message to stderr."""
   PrintUpdate(msg)
+
+
+def _PrintErrorAndExit(stream, msg, exit_code=2):
+  """Prints the given error message and exists the program.
+
+  Args:
+    stream: The stream (e.g. StringIO or file) to write the message to.
+    msg: The error message to display as a string.
+    exit_code: The integer code to pass to sys.exit().
+  """
+  stream.write(msg)
+  sys.exit(exit_code)
 
 
 def GetMimeTypeIfStaticFile(config, filename):
@@ -228,6 +246,52 @@ def BuildClonePostBody(file_tuples):
     tup = tup[1:]
     file_list.append(TUPLE_DELIMITER.join([path] + list(tup)))
   return LIST_DELIMITER.join(file_list)
+
+
+def GetRemoteResourceLimits(rpcserver):
+  """Get the resource limit as reported by the admin console.
+
+  Get the resource limits by querying the admin_console/appserver. The
+  actual limits returned depends on the server we are talking to and
+  could be missing values we expect or include extra values.
+
+  Args:
+    rpcserver: The RPC server to use.
+
+  Returns:
+    A dictionary.
+  """
+  try:
+    yaml_data = rpcserver.Send('/api/appversion/getresourcelimits')
+
+  except urllib2.HTTPError, err:
+
+
+
+    if err.code != 404:
+      raise
+    return {}
+
+  return yaml.safe_load(yaml_data)
+
+
+def GetResourceLimits(rpcserver):
+  """Gets the resource limits.
+
+  Gets the resource limits that should be applied to apps. Any values
+  that the server does not know about will have their default value
+  reported (although it is also possible for the server to report
+  values we don't know about).
+
+  Args:
+    rpcserver: The RPC server to use.
+
+  Returns:
+    A dictionary.
+  """
+  resource_limits = DEFAULT_RESOURCE_LIMITS.copy()
+  resource_limits.update(GetRemoteResourceLimits(rpcserver))
+  return resource_limits
 
 
 class NagFile(validation.Validated):
@@ -463,7 +527,8 @@ class UpdateCheck(object):
                                      timeout=UPDATE_CHECK_TIMEOUT,
                                      release=version['release'],
                                      timestamp=version['timestamp'],
-                                     api_versions=version['api_versions'])
+                                     api_versions=version['api_versions'],
+                                     runtime=self.config.runtime)
     except urllib2.URLError, e:
       logging.info('Update check failed: %s', e)
       return
@@ -2220,7 +2285,8 @@ class AppCfgApp(object):
                throttle_class=None,
                opener=open,
                file_iterator=FileIterator,
-               time_func=time.time):
+               time_func=time.time,
+               wrap_server_error_message=True):
     """Initializer.  Parses the cmdline and selects the Action to use.
 
     Initializes all of the attributes described in the class docstring.
@@ -2244,6 +2310,10 @@ class AppCfgApp(object):
         regular expression.
       time_func: Function which provides the current time (can be replaced for
           testing).
+      wrap_server_error_message: If true, the error messages from
+          urllib2.HTTPError exceptions in Run() are wrapped with
+          '--- begin server output ---' and '--- end server output ---',
+          otherwise the error message is printed as is.
     """
     self.parser_class = parser_class
     self.argv = argv
@@ -2255,6 +2325,7 @@ class AppCfgApp(object):
     self.update_check_class = update_check_class
     self.throttle_class = throttle_class
     self.time_func = time_func
+    self.wrap_server_error_message = wrap_server_error_message
 
 
 
@@ -2271,7 +2342,14 @@ class AppCfgApp(object):
       self._PrintHelpAndExit()
 
     if not self.options.allow_any_runtime:
-      appinfo.AppInfoExternal.ATTRIBUTES[appinfo.RUNTIME] = 'python|go'
+      if self.options.runtime:
+        if self.options.runtime not in SUPPORTED_RUNTIMES:
+          _PrintErrorAndExit(self.error_fh,
+                             '"%s" is not a supported runtime\n' %
+                             self.options.runtime)
+      else:
+        appinfo.AppInfoExternal.ATTRIBUTES[appinfo.RUNTIME] = (
+            '|'.join(SUPPORTED_RUNTIMES))
 
     action = self.args.pop(0)
 
@@ -2364,9 +2442,13 @@ class AppCfgApp(object):
       self.action(self)
     except urllib2.HTTPError, e:
       body = e.read()
-      print >>self.error_fh, ('Error %d: --- begin server output ---\n'
-                              '%s\n--- end server output ---' %
-                              (e.code, body.rstrip('\n')))
+      if self.wrap_server_error_message:
+        error_format = ('Error %d: --- begin server output ---\n'
+                        '%s\n--- end server output ---')
+      else:
+        error_format = 'Error %d: %s'
+
+      print >>self.error_fh, (error_format % (e.code, body.rstrip('\n')))
       return 1
     except yaml_errors.EventListenerError, e:
       print >>self.error_fh, ('Error parsing yaml file:\n%s' % e)
@@ -2445,6 +2527,8 @@ class AppCfgApp(object):
                       help='Override application from app.yaml file.')
     parser.add_option('-V', '--version', action='store', dest='version',
                       help='Override (major) version from app.yaml file.')
+    parser.add_option('-r', '--runtime', action='store', dest='runtime',
+                      help='Override runtime from app.yaml file.')
     parser.add_option('-R', '--allow_any_runtime', action='store_true',
                       dest='allow_any_runtime', default=False,
                       help='Do not validate the runtime in app.yaml')
@@ -2548,10 +2632,15 @@ class AppCfgApp(object):
     if not os.path.isdir(basepath):
       self.parser.error('Not a directory: %s' % basepath)
 
-    for yaml_file in (file_name + '.yaml', file_name + '.yml'):
-      yaml_path = os.path.join(basepath, yaml_file)
-      if os.path.isfile(yaml_path):
-        return yaml_path
+
+
+    alt_basepath = os.path.join(basepath, "WEB-INF", "appengine-generated")
+
+    for yaml_basepath in (basepath, alt_basepath):
+      for yaml_file in (file_name + '.yaml', file_name + '.yml'):
+        yaml_path = os.path.join(yaml_basepath, yaml_file)
+        if os.path.isfile(yaml_path):
+          return yaml_path
 
     return None
 
@@ -2584,6 +2673,9 @@ class AppCfgApp(object):
       appyaml.application = self.options.app_id
     if self.options.version:
       appyaml.version = self.options.version
+    if self.options.runtime:
+      appyaml.runtime = self.options.runtime
+
     msg = 'Application: %s' % appyaml.application
     if appyaml.application != orig_application:
       msg += ' (was: %s)' % orig_application
@@ -2814,7 +2906,7 @@ class AppCfgApp(object):
       parser: An instance of OptionsParser.
     """
     parser.add_option('-S', '--max_size', type='int', dest='max_size',
-                      default=10485760, metavar='SIZE',
+                      default=32000000, metavar='SIZE',
                       help='Maximum size of a file to upload.')
     parser.add_option('--no_precompilation', action='store_false',
                       dest='precompilation', default=True,
@@ -3483,6 +3575,14 @@ class AppCfgApp(object):
                       help='The name of the file where the generated template'
                       ' is to be written. (Required)')
 
+  def ResourceLimitsInfo(self, output=None):
+    """Outputs the current resource limits."""
+    resource_limits = GetResourceLimits(self._GetRpcServer())
+
+
+    for attr_name in sorted(resource_limits):
+      print >>output, '%s: %s' % (attr_name, resource_limits[attr_name])
+
   class Action(object):
     """Contains information about a command line action.
 
@@ -3747,6 +3847,15 @@ template for use with upload_data or download_data.""",
 The 'set_default_version' command sets the default (serving) version of the app.
 Defaults to using the version specified in app.yaml; use the --version flag to
 override this."""),
+
+      'resource_limits_info': Action(
+          function='ResourceLimitsInfo',
+          usage='%prog [options] resource_limits_info <directory>',
+          short_desc='Get the resource limits.',
+          long_desc="""
+The 'resource_limits_info' command prints the current resource limits that
+are enforced.""",
+          uses_basepath=False),
 
 
   }

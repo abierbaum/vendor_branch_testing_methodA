@@ -66,6 +66,21 @@ Options:
                              lowest port value to use when choosing ports. If
                              set to 0, select random ports.
                              (Default 9000)
+  --mysql_host=HOSTNAME      MySQL database host.
+                             Used by the Cloud SQL (rdbms) stub.
+                             (Default '%(mysql_host)s')
+  --mysql_port=PORT          MySQL port to connect to.
+                             Used by the Cloud SQL (rdbms) stub.
+                             (Default %(mysql_port)s)
+  --mysql_user=USER          MySQL user to connect as.
+                             Used by the Cloud SQL (rdbms) stub.
+                             (Default %(mysql_user)s)
+  --mysql_password=PASSWORD  MySQL password to use.
+                             Used by the Cloud SQL (rdbms) stub.
+                             (Default '%(mysql_password)s')
+  --mysql_socket=PATH        MySQL Unix socket file path.
+                             Used by the Cloud SQL (rdbms) stub.
+                             (Default '%(mysql_socket)s')
   --require_indexes          Disallows queries that require composite indexes
                              not defined in index.yaml.
   --show_mail_body           Log the body of emails in mail stub.
@@ -89,20 +104,6 @@ Options:
   --use_sqlite               Use the new, SQLite based datastore stub.
                              (Default false)
 """
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -195,7 +196,6 @@ ARG_MYSQL_SOCKET = 'mysql_socket'
 ARG_MYSQL_USER = 'mysql_user'
 ARG_PORT = 'port'
 ARG_PROSPECTIVE_SEARCH_PATH = 'prospective_search_path'
-ARG_RDBMS_SQLITE_PATH = 'rdbms_sqlite_path'
 ARG_REQUIRE_INDEXES = 'require_indexes'
 ARG_SHOW_MAIL_BODY = 'show_mail_body'
 ARG_SKIP_SDK_UPDATE_CHECK = 'skip_sdk_update_check'
@@ -205,7 +205,6 @@ ARG_SMTP_PORT = 'smtp_port'
 ARG_SMTP_USER = 'smtp_user'
 ARG_STATIC_CACHING = 'static_caching'
 ARG_TASK_RETRY_SECONDS = 'task_retry_seconds'
-ARG_TEMPLATE_DIR = 'template_dir'
 
 
 ARG_TRUSTED = 'trusted'
@@ -252,8 +251,6 @@ DEFAULT_ARGS = {
   ARG_PORT: 8080,
   ARG_PROSPECTIVE_SEARCH_PATH: os.path.join(tempfile.gettempdir(),
                                             'dev_appserver.prospective_search'),
-  ARG_RDBMS_SQLITE_PATH: os.path.join(tempfile.gettempdir(),
-                                      'dev_appserver.rdbms'),
   ARG_REQUIRE_INDEXES: False,
   ARG_SHOW_MAIL_BODY: False,
   ARG_SKIP_SDK_UPDATE_CHECK: False,
@@ -263,7 +260,6 @@ DEFAULT_ARGS = {
   ARG_SMTP_USER: '',
   ARG_STATIC_CACHING: True,
   ARG_TASK_RETRY_SECONDS: 30,
-  ARG_TEMPLATE_DIR: os.path.join(SDK_PATH, 'templates'),
   ARG_TRUSTED: False,
   ARG_USE_SQLITE: False,
 }
@@ -334,7 +330,6 @@ def ParseArguments(argv):
         'mysql_socket=',
         'mysql_user=',
         'port=',
-        'rdbms_sqlite_path=',
         'require_indexes',
         'show_mail_body',
         'skip_sdk_update_check',
@@ -343,7 +338,6 @@ def ParseArguments(argv):
         'smtp_port=',
         'smtp_user=',
         'task_retry_seconds=',
-        'template_dir=',
         'trusted',
         'use_sqlite',
       ])
@@ -367,17 +361,20 @@ def ParseArguments(argv):
         print >>sys.stderr, 'Invalid value supplied for port'
         PrintUsageExit(1)
 
+    def expand_path(s):
+      return os.path.abspath(os.path.expanduser(s))
+
     if option in ('-a', '--address'):
       option_dict[ARG_ADDRESS] = value
 
     if option == '--blobstore_path':
-      option_dict[ARG_BLOBSTORE_PATH] = os.path.abspath(value)
+      option_dict[ARG_BLOBSTORE_PATH] = expand_path(value)
 
     if option == '--datastore_path':
-      option_dict[ARG_DATASTORE_PATH] = os.path.abspath(value)
+      option_dict[ARG_DATASTORE_PATH] = expand_path(value)
 
     if option == '--prospective_search_path':
-      option_dict[ARG_PROSPECTIVE_SEARCH_PATH] = os.path.abspath(value)
+      option_dict[ARG_PROSPECTIVE_SEARCH_PATH] = expand_path(value)
 
     if option == '--skip_sdk_update_check':
       option_dict[ARG_SKIP_SDK_UPDATE_CHECK] = True
@@ -389,7 +386,7 @@ def ParseArguments(argv):
       option_dict[ARG_HIGH_REPLICATION] = True
 
     if option == '--history_path':
-      option_dict[ARG_HISTORY_PATH] = os.path.abspath(value)
+      option_dict[ARG_HISTORY_PATH] = expand_path(value)
 
     if option in ('-c', '--clear_datastore'):
       option_dict[ARG_CLEAR_DATASTORE] = True
@@ -399,9 +396,6 @@ def ParseArguments(argv):
 
     if option == '--require_indexes':
       option_dict[ARG_REQUIRE_INDEXES] = True
-
-    if option == '--rdbms_sqlite_path':
-      option_dict[ARG_RDBMS_SQLITE_PATH] = value
 
     if option == '--mysql_host':
       option_dict[ARG_MYSQL_HOST] = value
@@ -441,9 +435,6 @@ def ParseArguments(argv):
 
     if option == '--debug_imports':
       option_dict['_ENABLE_LOGGING'] = True
-
-    if option == '--template_dir':
-      option_dict[ARG_TEMPLATE_DIR] = value
 
     if option == '--admin_console_server':
       option_dict[ARG_ADMIN_CONSOLE_SERVER] = value.strip()
@@ -555,27 +546,6 @@ def main(argv):
     print >>sys.stderr, 'Invalid arguments'
     PrintUsageExit(1)
 
-  version_tuple = tuple(sys.version_info[:2])
-
-  if ARG_MULTIPROCESS not in option_dict and WARN_ABOUT_PYTHON_VERSION:
-    if version_tuple < PRODUCTION_VERSION:
-      sys.stderr.write('Warning: You are using a Python runtime (%d.%d) that '
-                       'is older than the production runtime environment '
-                       '(%d.%d). Your application may be dependent on Python '
-                       'behaviors that have changed and may not work correctly '
-                       'when deployed to production.\n' % (
-                           version_tuple[0], version_tuple[1],
-                           PRODUCTION_VERSION[0], PRODUCTION_VERSION[1]))
-
-    if version_tuple > PRODUCTION_VERSION:
-      sys.stderr.write('Warning: You are using a Python runtime (%d.%d) that '
-                       'is more recent than the production runtime environment '
-                       '(%d.%d). Your application may use features that are not '
-                       'available in the production environment and may not work '
-                       'correctly when deployed to production.\n' % (
-                           version_tuple[0], version_tuple[1],
-                           PRODUCTION_VERSION[0], PRODUCTION_VERSION[1]))
-
   root_path = args[0]
 
   if '_DEFAULT_ENV_AUTH_DOMAIN' in option_dict:
@@ -594,9 +564,11 @@ def main(argv):
 
   logging.getLogger().setLevel(log_level)
 
+  default_partition = option_dict[ARG_DEFAULT_PARTITION]
   appinfo = None
   try:
-    appinfo, matcher = dev_appserver.LoadAppConfig(root_path, {})
+    appinfo, matcher, _ = dev_appserver.LoadAppConfig(
+        root_path, {}, default_partition=default_partition)
   except yaml_errors.EventListenerError, e:
     logging.error('Fatal error when loading application configuration:\n%s', e)
     return 1
@@ -604,17 +576,39 @@ def main(argv):
     logging.error('Application configuration file invalid:\n%s', e)
     return 1
 
+  version_tuple = tuple(sys.version_info[:2])
+  expected_version = PRODUCTION_VERSION
+  if appinfo.runtime == 'python27':
+    expected_version = (2, 7)
+
+  if ARG_MULTIPROCESS not in option_dict and WARN_ABOUT_PYTHON_VERSION:
+    if version_tuple < expected_version:
+      sys.stderr.write('Warning: You are using a Python runtime (%d.%d) that '
+                       'is older than the production runtime environment '
+                       '(%d.%d). Your application may be dependent on Python '
+                       'behaviors that have changed and may not work correctly '
+                       'when deployed to production.\n' % (
+                           version_tuple[0], version_tuple[1],
+                           expected_version[0], expected_version[1]))
+
+    if version_tuple > expected_version:
+      sys.stderr.write('Warning: You are using a Python runtime (%d.%d) that '
+                       'is more recent than the production runtime environment '
+                       '(%d.%d). Your application may use features that are '
+                       'not available in the production environment and may '
+                       'not work correctly when deployed to production.\n' % (
+                           version_tuple[0], version_tuple[1],
+                           expected_version[0], expected_version[1]))
+
   multiprocess.Init(argv, option_dict, root_path, appinfo)
   dev_process = multiprocess.GlobalProcess()
   port = option_dict[ARG_PORT]
   login_url = option_dict[ARG_LOGIN_URL]
-  template_dir = option_dict[ARG_TEMPLATE_DIR]
   address = option_dict[ARG_ADDRESS]
   require_indexes = option_dict[ARG_REQUIRE_INDEXES]
   allow_skipped_files = option_dict[ARG_ALLOW_SKIPPED_FILES]
   static_caching = option_dict[ARG_STATIC_CACHING]
   skip_sdk_update_check = option_dict[ARG_SKIP_SDK_UPDATE_CHECK]
-  default_partition = option_dict[ARG_DEFAULT_PARTITION]
 
   if (option_dict[ARG_ADMIN_CONSOLE_SERVER] != '' and
       not dev_process.IsSubprocess()):
@@ -644,7 +638,6 @@ def main(argv):
       root_path,
       login_url,
       port,
-      template_dir,
       sdk_dir=SDK_PATH,
       serve_address=address,
       require_indexes=require_indexes,

@@ -58,7 +58,7 @@ _START_PATH = '/_ah/start'
 
 
 _ALLOWED_SERVICES = ['mail', 'xmpp_message', 'xmpp_subscribe', 'xmpp_presence',
-                     'channel_presence', 'rest', 'warmup']
+                     'xmpp_error', 'channel_presence', 'rest', 'warmup']
 _SERVICE_RE_STRING = '(' + '|'.join(_ALLOWED_SERVICES) + ')'
 
 
@@ -101,6 +101,9 @@ APPLICATION_RE_STRING = (r'(?:%s)?(?:%s)?%s' %
 
 VERSION_RE_STRING = r'(?!-)[a-z\d\-]{1,%d}' % MAJOR_VERSION_ID_MAX_LEN
 ALTERNATE_HOSTNAME_SEPARATOR = '-dot-'
+
+
+BUILTIN_NAME_PREFIX = 'ah-builtin'
 
 RUNTIME_RE_STRING = r'[a-z][a-z0-9]{0,29}'
 
@@ -175,6 +178,7 @@ ERROR_HANDLERS = 'error_handlers'
 BACKENDS = 'backends'
 THREADSAFE = 'threadsafe'
 API_CONFIG = 'api_config'
+CODE_LOCK = 'code_lock'
 
 
 PAGES = 'pages'
@@ -195,9 +199,16 @@ OFF_ALIASES = ['no', 'n', 'False', 'f', '0', 'false']
 
 SUPPORTED_LIBRARIES = {
     'django': ['1.2'],
+    'jinja2': ['2.6'],
+    'lxml': ['2.3'],
+    'markupsafe': ['0.15'],
+    'numpy': ['1.6.1'],
+    'PIL': ['1.1.7'],
     'pycrypto': ['2.3'],
-    'yaml': ['3.05'],
-    'webob': ['0.9'],
+    'setuptools': ['0.6c11'],
+    'webapp2': ['2.3'],
+    'webob': ['1.1.1'],
+    'yaml': ['3.10'],
 }
 
 
@@ -812,6 +823,7 @@ class AppInfoExternal(validation.Validated):
           backendinfo.BackendEntry)),
       THREADSAFE: validation.Optional(bool),
       API_CONFIG: validation.Optional(ApiConfigHandler),
+      CODE_LOCK: validation.Optional(bool),
   }
 
   def CheckInitialized(self):
@@ -822,11 +834,17 @@ class AppInfoExternal(validation.Validated):
       - Number of url mappers doesn't exceed MAX_URL_MAPS.
       - Major version does not contain the string -dot-.
       - If api_endpoints are defined, an api_config stanza must be defined.
+      - If the runtime is python27 and threadsafe is set, then no CGI handlers
+        can be used.
+      - That the version name doesn't start with BUILTIN_NAME_PREFIX
 
     Raises:
       MissingURLMapping: if no URLMap object is present in the object.
       TooManyURLMappings: if there are too many URLMap entries.
       MissingApiConfig: if api_endpoints exist without an api_config.
+      MissingThreadsafe: if threadsafe is not set but the runtime requires it.
+      ThreadsafeWithCgiHandler: if the runtime is python27, threadsafe is set
+          and CGI handlers are specified.
     """
     super(AppInfoExternal, self).CheckInitialized()
     if not self.handlers and not self.builtins and not self.includes:
@@ -836,6 +854,10 @@ class AppInfoExternal(validation.Validated):
       raise appinfo_errors.TooManyURLMappings(
           'Found more than %d URLMap entries in application configuration' %
           MAX_URL_MAPS)
+
+    if self.threadsafe is None and self.runtime == 'python27':
+      raise appinfo_errors.MissingThreadsafe(
+          'threadsafe must be present and set to either "yes" or "no"')
 
     if self.libraries:
       if self.runtime != 'python27':
@@ -852,6 +874,11 @@ class AppInfoExternal(validation.Validated):
       raise validation.ValidationError(
           'Version "%s" cannot contain the string "%s"' % (
               self.version, ALTERNATE_HOSTNAME_SEPARATOR))
+    if self.version and self.version.startswith(BUILTIN_NAME_PREFIX):
+      raise validation.ValidationError(
+          ('Version "%s" cannot start with "%s" because it is a '
+           'reserved version name prefix.') % (self.version,
+                                               BUILTIN_NAME_PREFIX))
     if self.handlers:
       api_endpoints = [handler.url for handler in self.handlers
                        if handler.GetHandlerType() == HANDLER_API_ENDPOINT]
@@ -859,6 +886,13 @@ class AppInfoExternal(validation.Validated):
         raise appinfo_errors.MissingApiConfig(
             'An api_endpoint handler was specified, but the required '
             'api_config stanza was not configured.')
+      if self.threadsafe and self.runtime == 'python27':
+        for handler in self.handlers:
+          if (handler.script and (handler.script.endswith('.py') or
+                                  '/' in handler.script)):
+            raise appinfo_errors.ThreadsafeWithCgiHandler(
+                'threadsafe cannot be enabled with CGI handler: %s' %
+                handler.script)
 
   def ApplyBackendSettings(self, backend_name):
     """Applies settings from the indicated backend to the AppInfoExternal.

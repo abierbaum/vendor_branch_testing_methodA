@@ -31,6 +31,7 @@ class representing a blob-key.
 
 
 
+import base64
 import cgi
 import email
 import os
@@ -43,6 +44,7 @@ from google.appengine.ext import db
 
 __all__ = ['BLOB_INFO_KIND',
            'BLOB_KEY_HEADER',
+           'BLOB_MIGRATION_KIND',
            'BLOB_RANGE_HEADER',
            'BlobFetchSizeTooLargeError',
            'BlobInfo',
@@ -52,6 +54,7 @@ __all__ = ['BLOB_INFO_KIND',
            'BlobReferenceProperty',
            'BlobReader',
            'DataIndexOutOfRangeError',
+           'PermissionDeniedError',
            'Error',
            'InternalError',
            'MAX_BLOB_FETCH_SIZE',
@@ -68,6 +71,7 @@ BlobFetchSizeTooLargeError = blobstore.BlobFetchSizeTooLargeError
 BlobNotFoundError = blobstore.BlobNotFoundError
 _CreationFormatError = blobstore._CreationFormatError
 DataIndexOutOfRangeError = blobstore.DataIndexOutOfRangeError
+PermissionDeniedError = blobstore.PermissionDeniedError
 
 BlobKey = blobstore.BlobKey
 create_upload_url = blobstore.create_upload_url
@@ -79,6 +83,7 @@ class BlobInfoParseError(Error):
 
 
 BLOB_INFO_KIND = blobstore.BLOB_INFO_KIND
+BLOB_MIGRATION_KIND = blobstore.BLOB_MIGRATION_KIND
 BLOB_KEY_HEADER = blobstore.BLOB_KEY_HEADER
 BLOB_RANGE_HEADER = blobstore.BLOB_RANGE_HEADER
 MAX_BLOB_FETCH_SIZE = blobstore.MAX_BLOB_FETCH_SIZE
@@ -138,6 +143,7 @@ class BlobInfo(object):
     creation: Creation date of blob, when it was uploaded.
     filename: Filename user selected from their machine.
     size: Size of uncompressed blob.
+    md5_hash: The md5 hash value of the uploaded blob.
 
   All properties are read-only.  Attempting to assign a value to a property
   will raise NotImplementedError.
@@ -146,7 +152,8 @@ class BlobInfo(object):
   _unindexed_properties = frozenset()
 
 
-  _all_properties = frozenset(['content_type', 'creation', 'filename', 'size'])
+  _all_properties = frozenset(['content_type', 'creation', 'filename',
+                               'size', 'md5_hash'])
 
   @property
   def content_type(self):
@@ -403,6 +410,8 @@ def parse_blob_info(field_storage):
   content_type = get_value(upload_content, 'content-type')
   size = get_value(upload_content, 'content-length')
   creation_string = get_value(upload_content, UPLOAD_INFO_CREATION_HEADER)
+  md5_hash_encoded = get_value(upload_content, 'content-md5')
+  md5_hash = base64.urlsafe_b64decode(md5_hash_encoded)
 
   try:
     size = int(size)
@@ -420,6 +429,7 @@ def parse_blob_info(field_storage):
                    'creation': creation,
                    'filename': filename,
                    'size': size,
+                   'md5_hash': md5_hash,
                    })
 
 

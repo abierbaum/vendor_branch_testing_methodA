@@ -52,8 +52,7 @@ from google.appengine.datastore import entity_pb
 
 
 
-
-_MAXIMUM_RESULTS = 1000
+_MAXIMUM_RESULTS = 300
 
 
 
@@ -75,7 +74,14 @@ _PROPERTY_TYPE_NAMES = {
     }
 
 
+
 _SCATTER_PROPORTION = 32768
+
+
+
+
+_MAX_EG_PER_TXN = 5
+
 
 def _GetScatterProperty(entity_proto):
   """Gets the scatter property for an object.
@@ -118,6 +124,7 @@ _SPECIAL_PROPERTY_MAP = {
     '__scatter__' : (False, True, _GetScatterProperty)
     }
 
+
 def GetInvisibleSpecialPropertyNames():
   """Gets the names of all non user-visible special properties."""
   invisible_names = []
@@ -126,6 +133,7 @@ def GetInvisibleSpecialPropertyNames():
     if not is_visible:
       invisible_names.append(name)
   return invisible_names
+
 
 def _PrepareSpecialProperties(entity_proto, is_load):
   """Computes special properties for loading or storing.
@@ -282,7 +290,7 @@ def CheckQuery(query, filters, orders, max_query_components):
     max_query_components: limit on query complexity
   """
 
-  key_prop_name = datastore_types._KEY_SPECIAL_PROPERTY
+  key_prop_name = datastore_types.KEY_SPECIAL_PROPERTY
   unapplied_log_timestamp_us_name = (
       datastore_types._UNAPPLIED_LOG_TIMESTAMP_SPECIAL_PROPERTY)
 
@@ -462,7 +470,7 @@ def ParseKeyFilteredQuery(filters, orders):
 
   remaining_filters = []
   key_range = ValueRange()
-  key_prop = datastore_types._KEY_SPECIAL_PROPERTY
+  key_prop = datastore_types.KEY_SPECIAL_PROPERTY
   for f in filters:
     op = f.op()
     if not (f.property_size() == 1 and
@@ -481,7 +489,7 @@ def ParseKeyFilteredQuery(filters, orders):
   remaining_orders = []
   for o in orders:
     if not (o.direction() == datastore_pb.Query_Order.ASCENDING and
-            o.property() == datastore_types._KEY_SPECIAL_PROPERTY):
+            o.property() == datastore_types.KEY_SPECIAL_PROPERTY):
       remaining_orders.append(o)
     else:
       break
@@ -611,6 +619,7 @@ def ParsePropertyQuery(query, filters, orders):
 
   return key_range
 
+
 def _PropertyKeyToString(key, default_property):
   """Extract property name from __property__ key.
 
@@ -680,30 +689,44 @@ class BaseCursor(object):
   """A base query cursor over a list of entities.
 
   Public properties:
-    cursor: the integer cursor
-    app: the app for which this cursor was created
+    cursor: the integer cursor.
+    app: the app for which this cursor was created.
+    keys_only: whether the query is keys_only.
 
   Class attributes:
-    _next_cursor: the next cursor to allocate
-    _next_cursor_lock: protects _next_cursor
+    _next_cursor: the next cursor to allocate.
+    _next_cursor_lock: protects _next_cursor.
   """
   _next_cursor = 1
   _next_cursor_lock = threading.Lock()
 
-  def __init__(self, app):
+  def __init__(self, query, dsquery, orders):
     """Constructor.
 
     Args:
-      app: The app this cursor is being created for.
+      query: the query request proto.
+      dsquery: a datastore_query.Query over query.
+      orders: the orders of query as returned by _GuessOrders.
     """
-    self.app = app
+
+    self.keys_only = query.keys_only()
+    self.app = query.app()
     self.cursor = self._AcquireCursorID()
 
-  def PopulateCursor(self, query_result):
+    self.__order_compare_entities = dsquery._order.cmp_for_filter(
+        dsquery._filter_predicate)
+    self.__order_property_names = set(
+        order.property() for order in orders if order.property() != '__key__')
+
+  def _PopulateResultMetadata(self, query_result, compile, last_result):
+    query_result.set_keys_only(self.keys_only)
     if query_result.more_results():
       cursor = query_result.mutable_cursor()
       cursor.set_app(self.app)
       cursor.set_cursor(self.cursor)
+    if compile:
+      self._EncodeCompiledCursor(last_result,
+                                 query_result.mutable_compiled_cursor())
 
   @classmethod
   def _AcquireCursorID(cls):
@@ -716,100 +739,18 @@ class BaseCursor(object):
       cls._next_cursor_lock.release()
     return cursor_id
 
-
-class ListCursor(BaseCursor):
-  """A query cursor over a list of entities.
-
-  Public properties:
-    keys_only: whether the query is keys_only
-  """
-
-  def __init__(self, query, results, order_compare_entities,
-               order_property_names):
-    """Constructor.
+  def _IsBeforeCursor(self, entity, cursor):
+    """True if entity is before cursor according to the current order.
 
     Args:
-      query: the query request proto
-      results: list of datastore_pb.EntityProto
-      order_compare_entities: a __cmp__ function for datastore_pb.EntityProto
-        that follows sort order as specified by the query
-      order_property_names: a set of the names of properties used in
-        order_compare_entities.
+      entity: a datastore_pb.EntityProto entity.
+      cursor: a compiled cursor as returned by _DecodeCompiledCursor.
     """
-    super(ListCursor, self).__init__(query.app())
-
-    self.__order_property_names = order_property_names
-    if query.has_compiled_cursor() and query.compiled_cursor().position_list():
-      self.__last_result, inclusive = (self._DecodeCompiledCursor(
-          query.compiled_cursor()))
-      start_cursor_position = ListCursor._GetCursorOffset(
-          results, self.__last_result, inclusive, order_compare_entities)
+    x = self.__order_compare_entities(entity, cursor[0])
+    if cursor[1]:
+      return x < 0
     else:
-      self.__last_result = None
-      start_cursor_position = 0
-
-    if query.has_end_compiled_cursor():
-      if query.end_compiled_cursor().position_list():
-        end_cursor_entity, inclusive = self._DecodeCompiledCursor(
-            query.end_compiled_cursor())
-        end_cursor_position = ListCursor._GetCursorOffset(
-            results, end_cursor_entity, inclusive, order_compare_entities)
-      else:
-        end_cursor_position = 0
-    else:
-      end_cursor_position = len(results)
-
-
-    results = results[start_cursor_position:end_cursor_position]
-
-
-    if query.has_limit():
-      limit = query.limit()
-      if query.offset():
-        limit += query.offset()
-      if limit >= 0 and limit < len(results):
-        results = results[:limit]
-
-    self.__results = results
-    self.__offset = 0
-    self.__count = len(self.__results)
-
-
-    self.keys_only = query.keys_only()
-
-  @staticmethod
-  def _GetCursorOffset(results, cursor_entity, inclusive, compare):
-    """Converts a cursor entity into a offset into the result set even if the
-    cursor_entity no longer exists.
-
-    Args:
-      results: the query's results (sequence of datastore_pb.EntityProto)
-      cursor_entity: the datastore_pb.EntityProto from the compiled query
-      inclusive: boolean that specifies if to offset past the cursor_entity
-      compare: a function that takes two datastore_pb.EntityProto and compares
-        them.
-    Returns:
-      the integer offset
-    """
-    lo = 0
-    hi = len(results)
-    if inclusive:
-
-      while lo < hi:
-        mid = (lo + hi) // 2
-        if compare(results[mid], cursor_entity) < 0:
-          lo = mid + 1
-        else:
-          hi = mid
-    else:
-
-      while lo < hi:
-        mid = (lo + hi) // 2
-        if compare(cursor_entity, results[mid]) < 0:
-          hi = mid
-        else:
-          lo = mid + 1
-    return lo
+      return x <= 0
 
   def _DecodeCompiledCursor(self, compiled_cursor):
     """Converts a compiled_cursor into a cursor_entity.
@@ -843,35 +784,214 @@ class ListCursor(BaseCursor):
 
     return (cursor_entity, position.start_inclusive())
 
-  def _EncodeCompiledCursor(self, compiled_cursor):
+  def _EncodeCompiledCursor(self, last_result, compiled_cursor):
     """Converts the current state of the cursor into a compiled_cursor.
 
     Args:
-      query: the datastore_pb.Query this cursor is related to
-      compiled_cursor: an empty datstore_pb.CompiledCursor
+      last_result: the last result returned by this query.
+      compiled_cursor: an empty datstore_pb.CompiledCursor.
     """
-    if self.__last_result is not None:
+    if last_result is not None:
 
 
       position = compiled_cursor.add_position()
-      position.mutable_key().MergeFrom(self.__last_result.key())
-      for prop in self.__last_result.property_list():
+      position.mutable_key().MergeFrom(last_result.key())
+      for prop in last_result.property_list():
         if prop.name() in self.__order_property_names:
           indexvalue = position.add_indexvalue()
           indexvalue.set_property(prop.name())
           indexvalue.mutable_value().CopyFrom(prop.value())
       position.set_start_inclusive(False)
 
-  def Count(self):
-    """Counts results, up to the query's limit.
 
-    Note this method does not deduplicate results, so the query it was generated
-    from should have the 'distinct' clause applied.
+class IteratorCursor(BaseCursor):
+  """A query cursor over an entity iterator."""
 
-    Returns:
-      int: Result count.
+  def __init__(self, query, dsquery, orders, results):
+    """Constructor.
+
+    Args:
+      query: the query request proto
+      dsquery: a datastore_query.Query over query.
+      orders: the orders of query as returned by _GuessOrders.
+      results: iterator over datastore_pb.EntityProto
     """
-    return self.__count
+    super(IteratorCursor, self).__init__(query, dsquery, orders)
+
+    self.__last_result = None
+    self.__next_result = None
+    self.__results = results
+    self.__done = False
+
+
+    if query.has_end_compiled_cursor():
+      if query.end_compiled_cursor().position_list():
+        self.__end_cursor = self._DecodeCompiledCursor(
+            query.end_compiled_cursor())
+      else:
+        self.__done = True
+    else:
+      self.__end_cursor = None
+
+    if query.has_compiled_cursor() and query.compiled_cursor().position_list():
+      start_cursor = self._DecodeCompiledCursor(query.compiled_cursor())
+      self.__last_result = start_cursor[0]
+      try:
+        self._Advance()
+        while self._IsBeforeCursor(self.__next_result, start_cursor):
+          self._Advance()
+      except StopIteration:
+        pass
+
+
+    self.__offset = 0
+    self.__limit = None
+    if query.has_limit():
+      limit = query.limit()
+      if query.offset():
+        limit += query.offset()
+      if limit >= 0:
+        self.__limit = limit
+
+  def _Done(self):
+    self.__done = True
+    self.__next_result = None
+    raise StopIteration
+
+  def _Advance(self):
+    """Advance to next result (handles end cursor, ignores limit)."""
+    if self.__done:
+      raise StopIteration
+    try:
+      self.__next_result = self.__results.next()
+    except StopIteration:
+      self._Done()
+    if (self.__end_cursor and
+        not self._IsBeforeCursor(self.__next_result, self.__end_cursor)):
+      self._Done()
+
+  def _GetNext(self):
+    """Ensures next result is fetched."""
+    if self.__limit is not None and self.__offset >= self.__limit:
+      self._Done()
+    if self.__next_result is None:
+      self._Advance()
+
+  def _Next(self):
+    """Returns and consumes next result."""
+    self._GetNext()
+    self.__last_result = self.__next_result
+    self.__next_result = None
+    self.__offset += 1
+    return self.__last_result
+
+  def PopulateQueryResult(self, result, count, offset, compile=False):
+    """Populates a QueryResult with this cursor and the given number of results.
+
+    Args:
+      result: datastore_pb.QueryResult
+      count: integer of how many results to return
+      offset: integer of how many results to skip
+      compile: boolean, whether we are compiling this query
+    """
+    skipped = 0
+    try:
+      limited_offset = min(offset, _MAX_QUERY_OFFSET)
+      while skipped < limited_offset:
+        self._Next()
+        skipped += 1
+
+
+
+
+
+
+
+      if skipped == offset:
+        if count > _MAXIMUM_RESULTS:
+          count = _MAXIMUM_RESULTS
+        while count > 0:
+          result.result_list().append(LoadEntity(self._Next()))
+          count -= 1
+
+      self._GetNext()
+    except StopIteration:
+      pass
+
+    result.set_more_results(not self.__done)
+    result.set_skipped_results(skipped)
+    self._PopulateResultMetadata(result, compile, self.__last_result)
+
+
+class ListCursor(BaseCursor):
+  """A query cursor over a list of entities.
+
+  Public properties:
+    keys_only: whether the query is keys_only
+  """
+
+  def __init__(self, query, dsquery, orders, results):
+    """Constructor.
+
+    Args:
+      query: the query request proto
+      dsquery: a datastore_query.Query over query.
+      orders: the orders of query as returned by _GuessOrders.
+      results: list of datastore_pb.EntityProto
+    """
+    super(ListCursor, self).__init__(query, dsquery, orders)
+
+    if query.has_compiled_cursor() and query.compiled_cursor().position_list():
+      start_cursor = self._DecodeCompiledCursor(query.compiled_cursor())
+      self.__last_result = start_cursor[0]
+      start_cursor_position = self._GetCursorOffset(results, start_cursor)
+    else:
+      self.__last_result = None
+      start_cursor_position = 0
+
+    if query.has_end_compiled_cursor():
+      if query.end_compiled_cursor().position_list():
+        end_cursor = self._DecodeCompiledCursor(query.end_compiled_cursor())
+        end_cursor_position = self._GetCursorOffset(results, end_cursor)
+      else:
+        end_cursor_position = 0
+    else:
+      end_cursor_position = len(results)
+
+
+    results = results[start_cursor_position:end_cursor_position]
+
+
+    if query.has_limit():
+      limit = query.limit()
+      if query.offset():
+        limit += query.offset()
+      if limit >= 0 and limit < len(results):
+        results = results[:limit]
+
+    self.__results = results
+    self.__offset = 0
+    self.__count = len(self.__results)
+
+  def _GetCursorOffset(self, results, cursor):
+    """Converts a cursor into a offset into the result set even if the
+    cursor's entity no longer exists.
+
+    Args:
+      results: the query's results (sequence of datastore_pb.EntityProto)
+      cursor: a compiled cursor as returned by _DecodeCompiledCursor
+    Returns:
+      the integer offset
+    """
+    lo = 0
+    hi = len(results)
+    while lo < hi:
+      mid = (lo + hi) // 2
+      if self._IsBeforeCursor(results[mid], cursor):
+        lo = mid + 1
+      else:
+        hi = mid
+    return lo
 
   def PopulateQueryResult(self, result, count, offset, compile=False):
     """Populates a QueryResult with this cursor and the given number of results.
@@ -907,11 +1027,8 @@ class ListCursor(BaseCursor):
 
       self.__last_result = self.__results[self.__offset - 1]
 
-    result.set_keys_only(self.keys_only)
     result.set_more_results(self.__offset < self.__count)
-    self.PopulateCursor(result)
-    if compile:
-      self._EncodeCompiledCursor(result.mutable_compiled_cursor())
+    self._PopulateResultMetadata(result, compile, self.__last_result)
 
 
 def _SynchronizeTxn(function):
@@ -919,10 +1036,10 @@ def _SynchronizeTxn(function):
 
   def sync(txn, *args, **kwargs):
 
-    assert txn._read_pos is None or txn._read_pos >= LiveTxn.FIRST_LOG_POS
-
     txn._lock.acquire()
     try:
+
+      Check(txn._state is LiveTxn.ACTIVE, 'transaction closed')
 
       return function(txn, *args, **kwargs)
     finally:
@@ -945,99 +1062,121 @@ class LiveTxn(object):
   """An in flight transaction."""
 
 
-  FIRST_LOG_POS = -1
-  COMMITED = -2
-  APPLIED = -3
-  ROLLEDBACK = -4
 
 
 
-  _read_pos = None
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ACTIVE = 1
+  COMMITED = 2
+  ROLLEDBACK = 3
+  FAILED = 4
+
+  _state = ACTIVE
   _commit_time = None
 
-
-
-  _snapshot = None
-
-
-
-  _entity_group = None
-
-  def __init__(self, txn_manager, app):
+  def __init__(self, txn_manager, app, allow_multiple_eg):
     assert isinstance(txn_manager, BaseTransactionManager)
     assert isinstance(app, basestring)
 
     self._txn_manager = txn_manager
     self._app = app
+    self._allow_multiple_eg = allow_multiple_eg
 
 
+    self._entity_groups = {}
 
     self._lock = threading.RLock()
+    self._apply_lock = threading.Lock()
 
-
-    self._put = {}
-    self._delete = {}
     self._actions = []
 
-  def _GetEntityGroup(self):
-    """Get the current entity group.
+  def _GetTracker(self, reference):
+    """Gets the entity group tracker for reference.
 
-    If no entity group has been discovered returns a 'global' entity group.
-    This is possible if the txn only contains transactional tasks.
-
-    Returns:
-      The entity_pb.Reference for the entity group used in this txn.
-    """
-    return self._entity_group or datastore_types.Key.from_path(
-        '__global__', 1, _app=self._app)._ToPb()
-
-  def GetEntityGroup(self):
-    """Get the current entity group.
-
-    If no entity group has been discovered returns a 'global' entity group.
-    This is possible if the txn only contains transactional tasks.
-
-    This can only be called after the txn has been committed as the entity group
-    can change as operations are performed.
-
-    Returns:
-      The entity_pb.Reference for the entity group used in this txn.
-    """
-    assert self._read_pos == self.COMMITED
-    return self._GetEntityGroup()
-
-  def _CheckOrSetEntityGroup(self, reference):
-    """Checks or sets the entity group.
-
-    If no entity group has been set, the entity group of the given
-    entity_pb.Reference is set for the txn. Otherwise the entity group of the
-    reference is asserted to be the set entity group.
-
-    Args:
-      reference: A entity_pb.Reference from which to extract the entity group.
+    If this is the first time reference's entity group is seen, creates a new
+    tracker, checking that the transaction doesn't exceed the entity group
+    limit.
     """
     entity_group = _GetEntityGroup(reference)
-    if self._entity_group:
-      Check(self._entity_group == entity_group,
-            'Transactions cannot span entity groups')
-    else:
-      Check(self._app == reference.app())
-      self._entity_group = entity_group
+    key = datastore_types.ReferenceToKeyValue(entity_group)
+    tracker = self._entity_groups.get(key, None)
+    if tracker is None:
+      Check(self._app == reference.app(),
+            'Transactions cannot span applications')
+      if self._allow_multiple_eg:
+        Check(len(self._entity_groups) < _MAX_EG_PER_TXN,
+              'operating on too many entity groups in a single transaction.')
+      else:
+        Check(len(self._entity_groups) < 1,
+              'can\'t operate on multiple entity groups in a single '
+              'transaction.')
+      tracker = EntityGroupTracker(entity_group)
+      self._entity_groups[key] = tracker
 
-  def _CheckOrSetSnapshot(self, reference):
-    """Checks or sets the snapshot for this txn.
+    return tracker
 
-    The entity group of reference is first checked or set on the current txn.
-    Then, if no snapshot has been set, a snapshot is taken of the entity_group
-    and stored for future reads (this also sets the read position)
+  def _GetAllTrackers(self):
+    """Get the trackers for the transaction's entity groups.
+
+    If no entity group has been discovered returns a 'global' entity group
+    tracker. This is possible if the txn only contains transactional tasks.
+
+    Returns:
+      The tracker list for the entity groups used in this txn.
+    """
+    if not self._entity_groups:
+      self._GetTracker(datastore_types.Key.from_path(
+          '__global__', 1, _app=self._app)._ToPb())
+    return self._entity_groups.values()
+
+  def _GrabSnapshot(self, reference):
+    """Gets snapshot for this reference, creating it if necessary.
+
+    If no snapshot has been set for reference's entity group, a snapshot is
+    taken and stored for future reads (this also sets the read position),
+    and a CONCURRENT_TRANSACTION exception is thrown if we no longer have
+    a consistent snapshot.
 
     Args:
       reference: A entity_pb.Reference from which to extract the entity group.
+    Raises:
+      apiproxy_errors.ApplicationError if the snapshot is not consistent.
     """
-    self._CheckOrSetEntityGroup(reference)
-    if self._snapshot is None:
-      self._read_pos, self._snapshot = self._txn_manager._GrabSnapshot(
-          self._entity_group)
+    tracker = self._GetTracker(reference)
+    check_contention = tracker._snapshot is None
+    snapshot = tracker._GrabSnapshot(self._txn_manager)
+    if check_contention:
+
+
+
+
+
+      candidates = [other for other in self._entity_groups.values()
+                    if other._snapshot is not None and other != tracker]
+      meta_data_list = [other._meta_data for other in candidates]
+      self._txn_manager._AcquireWriteLocks(meta_data_list)
+      try:
+        for other in candidates:
+          if other._meta_data._log_pos != other._read_pos:
+            self._state = self.FAILED
+            raise apiproxy_errors.ApplicationError(
+                datastore_pb.Error.CONCURRENT_TRANSACTION,
+                'Concurrency exception.')
+      finally:
+        self._txn_manager._ReleaseWriteLocks(meta_data_list)
+    return snapshot
 
   @_SynchronizeTxn
   def Get(self, reference):
@@ -1051,8 +1190,8 @@ class LiveTxn(object):
     Returns:
       The associated entity_pb.EntityProto or None if no such entity exists.
     """
-    self._CheckOrSetSnapshot(reference)
-    entity = self._snapshot.get(datastore_types.ReferenceToKeyValue(reference))
+    snapshot = self._GrabSnapshot(reference)
+    entity = snapshot.get(datastore_types.ReferenceToKeyValue(reference))
     return LoadEntity(entity)
 
   @_SynchronizeTxn
@@ -1071,8 +1210,8 @@ class LiveTxn(object):
     """
     Check(query.has_ancestor(),
           'Query must have an ancestor when performed in a transaction.')
-    self._CheckOrSetSnapshot(query.ancestor())
-    return _GetQueryCursor(self._snapshot.values(), query, filters, orders)
+    snapshot = self._GrabSnapshot(query.ancestor())
+    return _ExecuteQuery(snapshot.values(), query, filters, orders)
 
   @_SynchronizeTxn
   def Put(self, entity, insert):
@@ -1083,10 +1222,10 @@ class LiveTxn(object):
       insert: A boolean that indicates if we should fail if the entity already
         exists.
     """
-    self._CheckOrSetEntityGroup(entity.key())
+    tracker = self._GetTracker(entity.key())
     key = datastore_types.ReferenceToKeyValue(entity.key())
-    self._delete.pop(key, None)
-    self._put[key] = (entity, insert)
+    tracker._delete.pop(key, None)
+    tracker._put[key] = (entity, insert)
 
   @_SynchronizeTxn
   def Delete(self, reference):
@@ -1095,10 +1234,10 @@ class LiveTxn(object):
     Args:
       reference: The entity_pb.Reference of the entity to delete.
     """
-    self._CheckOrSetEntityGroup(reference)
+    tracker = self._GetTracker(reference)
     key = datastore_types.ReferenceToKeyValue(reference)
-    self._put.pop(key, None)
-    self._delete[key] = reference
+    tracker._put.pop(key, None)
+    tracker._delete[key] = reference
 
   @_SynchronizeTxn
   def AddActions(self, actions, max_actions=None):
@@ -1113,10 +1252,17 @@ class LiveTxn(object):
           'Too many messages, maximum allowed %s' % max_actions)
     self._actions.extend(actions)
 
-  @_SynchronizeTxn
   def Rollback(self):
     """Rollback the current txn."""
-    self._read_pos = self.ROLLEDBACK
+
+    self._lock.acquire()
+    try:
+      Check(self._state is self.ACTIVE or self._state is self.FAILED,
+            'transaction closed')
+      self._state = self.ROLLEDBACK
+    finally:
+
+      self._lock.release()
 
   @_SynchronizeTxn
   def Commit(self):
@@ -1125,24 +1271,27 @@ class LiveTxn(object):
     This function hands off the responsibility of calling _Apply to the owning
     TransactionManager.
     """
-
-    if not self._put and not self._delete and not self._actions:
-      return self.Rollback()
-
     try:
 
+      trackers = self._GetAllTrackers()
+      empty = True
+      for tracker in trackers:
+        tracker._GrabSnapshot(self._txn_manager)
+        empty = empty and not tracker._put and not tracker._delete
 
-      for entity, insert in self._put.itervalues():
-        Check(not insert or self.Get(entity.key()) is None,
-              'the id allocated for a new entity was already '
-              'in use, please try again')
+
+        for entity, insert in tracker._put.itervalues():
+          Check(not insert or self.Get(entity.key()) is None,
+                'the id allocated for a new entity was already '
+                'in use, please try again')
 
 
-      entity_group = self._GetEntityGroup()
-      self._commit_time = datetime.datetime.now()
-      success = False
-      self._read_pos = self._txn_manager._AcquireWriteLock(entity_group,
-                                                           self._read_pos)
+      if empty and not self._actions:
+        return self.Rollback()
+
+
+      meta_data_list = [tracker._meta_data for tracker in trackers]
+      self._txn_manager._AcquireWriteLocks(meta_data_list)
     except:
 
       self.Rollback()
@@ -1150,32 +1299,58 @@ class LiveTxn(object):
 
     try:
 
-      self._read_pos = self.COMMITED
-      success = True
+      for tracker in trackers:
+        Check(tracker._meta_data._log_pos == tracker._read_pos,
+              'Concurrency exception.',
+              datastore_pb.Error.CONCURRENT_TRANSACTION)
+
+
+      for tracker in trackers:
+        tracker._meta_data.Log(self)
+      self._state = self.COMMITED
+      self._commit_time = datetime.datetime.now()
+    except:
+
+      self.Rollback()
+      raise
     finally:
 
-      self._txn_manager._ReleaseWriteLock(entity_group, self, success)
+      self._txn_manager._ReleaseWriteLocks(meta_data_list)
 
-  def _Apply(self):
-    """Applies the current txn.
+
+    self._txn_manager._consistency_policy._OnCommit(self)
+
+  def _Apply(self, meta_data):
+    """Applies the current txn on the given entity group.
 
     This function blindly performs the operations contained in the current txn.
-    The calling function must acquire the entity group write lock and insure
+    The calling function must acquire the entity group write lock and ensure
     transactions are applied in order.
     """
 
-    self._lock.acquire()
+    self._apply_lock.acquire()
     try:
 
-      assert self._read_pos == self.COMMITED
+      assert self._state == self.COMMITED
+      for tracker in self._entity_groups.values():
+        if tracker._meta_data is meta_data:
+          break
+      else:
+        assert False
+      assert tracker._read_pos != tracker.APPLIED
 
 
-      for entity, insert in self._put.itervalues():
+      tracker._meta_data.Unlog(self)
+
+
+      for entity, insert in tracker._put.itervalues():
         self._txn_manager._Put(entity, insert)
 
 
-      for key in self._delete.itervalues():
+      for key in tracker._delete.itervalues():
         self._txn_manager._Delete(key)
+
+
 
 
       for action in self._actions:
@@ -1185,22 +1360,55 @@ class LiveTxn(object):
         except apiproxy_errors.ApplicationError, e:
           logging.warning('Transactional task %s has been dropped, %s',
                           action, e)
+      self._actions = []
 
-      self._read_pos = self.APPLIED
+
+      tracker._read_pos = EntityGroupTracker.APPLIED
       self._txn_manager._OnApply()
     finally:
-      self._lock.release()
+      self._apply_lock.release()
+
+
+class EntityGroupTracker(object):
+  """An entity group involved a transaction."""
+
+  APPLIED = -2
+
+
+
+
+
+  _read_pos = None
+
+
+  _snapshot = None
+
+
+  _meta_data = None
+
+  def __init__(self, entity_group):
+    self._entity_group = entity_group
+    self._put = {}
+    self._delete = {}
+
+  def _GrabSnapshot(self, txn_manager):
+    """Snapshot this entity group, remembering the read position."""
+    if self._snapshot is None:
+      self._meta_data, self._read_pos, self._snapshot = (
+          txn_manager._GrabSnapshot(self._entity_group))
+    return self._snapshot
 
 
 class EntityGroupMetaData(object):
-  """The metadata assoicated with an entity group."""
+  """The meta_data assoicated with an entity group."""
 
 
   _log_pos = -1
 
   _snapshot = None
 
-  def __init__(self):
+  def __init__(self, entity_group):
+    self._entity_group = entity_group
     self._write_lock = threading.Lock()
     self._apply_queue = []
 
@@ -1209,19 +1417,35 @@ class EntityGroupMetaData(object):
 
     assert self._write_lock.acquire(False) is False
 
-    for txn in self._apply_queue:
-      txn._Apply()
-    self._apply_queue = []
+    while self._apply_queue:
+      self._apply_queue[0]._Apply(self)
 
-  def IncrementLogPos(self):
-    """Increments the current log position and clears the snapshot cache.
+  def Log(self, txn):
+    """Add a pending transaction to this entity group.
 
-    This should be called everytime a txn is commited.
+    Requires that the caller hold the meta data lock.
+    This also increments the current log position and clears the snapshot cache.
     """
 
     assert self._write_lock.acquire(False) is False
+    self._apply_queue.append(txn)
     self._log_pos += 1
     self._snapshot = None
+
+  def Unlog(self, txn):
+    """Remove the first pending transaction from the apply queue.
+
+    Requires that the caller hold the meta data lock.
+    This checks that the first pending transaction is indeed txn.
+    """
+
+    assert self._write_lock.acquire(False) is False
+
+    Check(self._apply_queue and self._apply_queue[0] is txn,
+          'Transaction is not appliable',
+          datastore_pb.Error.INTERNAL_ERROR)
+    self._apply_queue.pop(0)
+
 
 class BaseConsistencyPolicy(object):
   """A base class for a consistency policy to be used with a transaction manger.
@@ -1229,18 +1453,13 @@ class BaseConsistencyPolicy(object):
 
 
 
-  def _OnCommit(self, txn, meta_data):
+  def _OnCommit(self, txn):
     """Called after a LiveTxn has been commited.
 
-    This function can either apply the txn right away or enqueue it in the
-    entity group metadata.
-
-    This function should assume the write lock on the metadata object is already
-    acquired.
+    This function can decide whether to apply the txn right away.
 
     Args:
       txn: A LiveTxn that has been commited
-      meta_data: The EntityGroupMetaData for thie given txn
     """
     raise NotImplementedError
 
@@ -1262,11 +1481,18 @@ class MasterSlaveConsistencyPolicy(BaseConsistencyPolicy):
   Applies all txn on commit.
   """
 
-  def _OnCommit(self, txn, meta_data):
-    assert not meta_data._apply_queue
-    txn._Apply()
+  def _OnCommit(self, txn):
+
+    for tracker in txn._GetAllTrackers():
+      tracker._meta_data._write_lock.acquire()
+      try:
+        tracker._meta_data.CatchUp()
+      finally:
+        tracker._meta_data._write_lock.release()
 
   def _OnGroom(self, meta_data_list):
+
+
     pass
 
 
@@ -1276,8 +1502,8 @@ class BaseHighReplicationConsistencyPolicy(BaseConsistencyPolicy):
   All txn are applied asynchronously.
   """
 
-  def _OnCommit(self, txn, meta_data):
-    meta_data._apply_queue.append(txn)
+  def _OnCommit(self, txn):
+    pass
 
   def _OnGroom(self, meta_data_list):
 
@@ -1289,21 +1515,16 @@ class BaseHighReplicationConsistencyPolicy(BaseConsistencyPolicy):
 
       meta_data._write_lock.acquire()
       try:
-        for i, txn in enumerate(meta_data._apply_queue):
-          if self._ShouldApply(txn):
-
-            txn._Apply()
+        while meta_data._apply_queue:
+          txn = meta_data._apply_queue[0]
+          if self._ShouldApply(txn, meta_data):
+            txn._Apply(meta_data)
           else:
-
-            meta_data._apply_queue = meta_data._apply_queue[i:]
             break
-        else:
-
-          meta_data._apply_queue = []
       finally:
         meta_data._write_lock.release()
 
-  def _ShouldApply(self, txn):
+  def _ShouldApply(self, txn, meta_data):
     """Determins if the given transaction should be applied."""
     raise NotImplementedError
 
@@ -1344,13 +1565,13 @@ class TimeBasedHRConsistencyPolicy(BaseHighReplicationConsistencyPolicy):
         break
     return elapsed_ms >= ms
 
-  def _Classify(self, txn):
-    return random.Random(id(txn)).random()
+  def _Classify(self, txn, meta_data):
+    return random.Random(id(txn) ^ id(meta_data)).random()
 
-  def _ShouldApply(self, txn):
+  def _ShouldApply(self, txn, meta_data):
     elapsed_ms = ((datetime.datetime.now() - txn._commit_time).microseconds //
                   1000)
-    classification = self._Classify(txn)
+    classification = self._Classify(txn, meta_data)
     return self._ShouldApplyImpl(elapsed_ms, classification)
 
 
@@ -1385,7 +1606,7 @@ class PseudoRandomHRConsistencyPolicy(BaseHighReplicationConsistencyPolicy):
     """Reset the seed."""
     self._random = random.Random(seed)
 
-  def _ShouldApply(self, txn):
+  def _ShouldApply(self, txn, meta_data):
     return self._random.random() < self._probability
 
 
@@ -1417,33 +1638,38 @@ class BaseTransactionManager(object):
       raise TypeError('policy should be of type '
                       'datastore_stub_util.BaseConsistencyPolicy found %r.' %
                       (policy,))
+    self.Flush()
     self._consistency_policy = policy
-    self.Clear()
 
   def Clear(self):
-    """Discards any pending transactions and resets the meta_data."""
+    """Discards any pending transactions and resets the meta data."""
 
-    self._meta_data = collections.defaultdict(EntityGroupMetaData)
+    self._meta_data = {}
 
     self._txn_map = {}
 
-  def BeginTransaction(self, app):
+  def BeginTransaction(self, app, allow_multiple_eg):
     """Start a transaction on the given app.
 
     Args:
       app: A string representing the app for which to start the transaction.
+      allow_multiple_eg: True if transactions can span multiple entity groups.
 
     Returns:
       A datastore_pb.Transaction for the created transaction
     """
-    txn = self._BeginTransaction(app)
+    Check(not (allow_multiple_eg and isinstance(
+        self._consistency_policy, MasterSlaveConsistencyPolicy)),
+          'transactions on multiple entity groups only allowed with the '
+          'High Reliability datastore')
+    txn = self._BeginTransaction(app, allow_multiple_eg)
     self._txn_map[id(txn)] = txn
     transaction = datastore_pb.Transaction()
     transaction.set_app(app)
     transaction.set_handle(id(txn))
     return transaction
 
-  def GetTxn(self, transaction, request_trusted=False, request_app=None):
+  def GetTxn(self, transaction, request_trusted, request_app):
     """Gets the LiveTxn object associated with the given transaction.
 
     Args:
@@ -1458,7 +1684,7 @@ class BaseTransactionManager(object):
     CheckTransaction(request_trusted, request_app, transaction)
     txn = self._txn_map.get(transaction.handle())
     Check(txn and txn._app == transaction.app(),
-          'Transaction %s not found' % transaction)
+          'Transaction(<%s>) not found' % str(transaction).replace('\n', ', '))
     return txn
 
   def Groom(self):
@@ -1472,18 +1698,37 @@ class BaseTransactionManager(object):
     finally:
       self._meta_data_lock.release()
 
+  def Flush(self):
+    """Applies all outstanding transactions."""
+    for meta_data in self._meta_data.itervalues():
+      if not meta_data._apply_queue:
+        continue
+
+
+      meta_data._write_lock.acquire()
+      try:
+        meta_data.CatchUp()
+      finally:
+        meta_data._write_lock.release()
+
   def _GetMetaData(self, entity_group):
     """Safely gets the EntityGroupMetaData object for the given entity_group.
     """
     self._meta_data_lock.acquire()
     try:
-      return self._meta_data[datastore_types.ReferenceToKeyValue(entity_group)]
+      key = datastore_types.ReferenceToKeyValue(entity_group)
+
+      meta_data = self._meta_data.get(key, None)
+      if not meta_data:
+        meta_data = EntityGroupMetaData(entity_group)
+        self._meta_data[key] = meta_data
+      return meta_data
     finally:
       self._meta_data_lock.release()
 
-  def _BeginTransaction(self, app):
+  def _BeginTransaction(self, app, allow_multiple_eg):
     """Starts a transaction without storing it in the txn_map."""
-    return LiveTxn(self, app)
+    return LiveTxn(self, app, allow_multiple_eg)
 
   def _GrabSnapshot(self, entity_group):
     """Grabs a consistent snapshot of the given entity group.
@@ -1504,57 +1749,30 @@ class BaseTransactionManager(object):
 
         meta_data.CatchUp()
         meta_data._snapshot = self._GetEntitiesInEntityGroup(entity_group)
-      return meta_data._log_pos, meta_data._snapshot
+      return meta_data, meta_data._log_pos, meta_data._snapshot
     finally:
 
       meta_data._write_lock.release()
 
-  def _AcquireWriteLock(self, entity_group, log_pos=None):
-    """Acquire the write lock for the given entity_group.
+  def _AcquireWriteLocks(self, meta_data_list):
+    """Acquire the write locks for the given entity group meta data.
 
-    This lock must be released with _ReleaseWriteLock before returning to the
+    These locks must be released with _ReleaseWriteLock before returning to the
     user.
 
     Args:
-      entity_group: A entity_pb.Reference of the entity group to lock.
-      log_pos: The log position to lock or None.
-
-    Returns:
-      The log position locked.
-
-    Raises:
-      apiproxy_errors.ApplicatonError if the log position cannot be locked
+      meta_data_list: list of EntityGroupMetaData objects.
     """
-    meta_data = self._GetMetaData(_GetEntityGroup(entity_group))
-    meta_data._write_lock.acquire()
-    try:
-      if log_pos is None:
+    for meta_data in sorted(meta_data_list):
+      meta_data._write_lock.acquire()
 
-        meta_data.CatchUp()
-      else:
-          Check(meta_data._log_pos == log_pos,
-                'Concurrency exception.',
-                datastore_pb.Error.CONCURRENT_TRANSACTION)
-    except:
-      meta_data._write_lock.release()
-      raise
-    return meta_data._log_pos
-
-  def _ReleaseWriteLock(self, entity_group, txn=None, modified=True):
-    """Release the write lock of the given entity group.
+  def _ReleaseWriteLocks(self, meta_data_list):
+    """Release the write locks of the given entity group meta data.
 
     Args:
-      entity_group: A entity_pb.Reference of the entity group to release.
-      txn: A LiveTxn that may need to be applied or None.
-      modified: A boolean that indicates if the entity group has been changed.
+      meta_data_list: list of EntityGroupMetaData objects.
     """
-    meta_data = self._GetMetaData(entity_group)
-    try:
-      if modified:
-        meta_data.IncrementLogPos()
-        if txn:
-          self._consistency_policy._OnCommit(txn, meta_data)
-    finally:
+    for meta_data in sorted(meta_data_list):
       meta_data._write_lock.release()
 
   def _RemoveTxn(self, txn):
@@ -1763,6 +1981,12 @@ class BaseDatastore(BaseTransactionManager, BaseIndexManager):
     self._require_indexes = require_indexes
     self._pseudo_kinds = {}
 
+  def __del__(self):
+
+
+    self.Flush()
+    self.Write()
+
   def Clear(self):
     """Clears out all stored values."""
 
@@ -1801,19 +2025,19 @@ class BaseDatastore(BaseTransactionManager, BaseIndexManager):
     FillUsersInQuery(filters)
 
 
-    self._CheckHasIndex(raw_query)
+    self._CheckHasIndex(raw_query, trusted, calling_app)
 
 
     if raw_query.has_transaction():
 
       Check(raw_query.kind() not in self._pseudo_kinds,
             'transactional queries on "%s" not allowed' % raw_query.kind())
-      txn = self.GetTxn(raw_query.transaction())
+      txn = self.GetTxn(raw_query.transaction(), trusted, calling_app)
       return txn.GetQueryCursor(raw_query, filters, orders)
 
     if raw_query.has_ancestor() and raw_query.kind() not in self._pseudo_kinds:
 
-      txn = self._BeginTransaction(raw_query.app())
+      txn = self._BeginTransaction(raw_query.app(), False)
       return txn.GetQueryCursor(raw_query, filters, orders)
 
 
@@ -1854,17 +2078,15 @@ class BaseDatastore(BaseTransactionManager, BaseIndexManager):
 
     grouped_keys = collections.defaultdict(list)
     for i, key in enumerate(raw_keys):
-      CheckReference(calling_app, trusted, key)
+      CheckReference(trusted, calling_app, key)
       entity_group = _GetEntityGroup(key)
       entity_group_key = datastore_types.ReferenceToKeyValue(entity_group)
       grouped_keys[entity_group_key].append((key, i))
 
     if transaction:
 
-      Check(len(grouped_keys) == 1, 'Transactions cannot span entity groups')
-      txn = self.GetTxn(transaction)
-
-      return [txn.Get(key) for key, _ in grouped_keys.values()[0]]
+      txn = self.GetTxn(transaction, trusted, calling_app)
+      return [txn.Get(key) for key in raw_keys]
     else:
 
 
@@ -1938,11 +2160,10 @@ class BaseDatastore(BaseTransactionManager, BaseIndexManager):
 
     if transaction:
 
-      Check(len(grouped_entities) == 1,
-            'Transactions cannot span entity groups')
       txn = self.GetTxn(transaction, trusted, calling_app)
-      for entity, insert in grouped_entities.values()[0]:
-        txn.Put(entity, insert)
+      for group in grouped_entities.values():
+        for entity, insert in group:
+          txn.Put(entity, insert)
     else:
 
       for entities in grouped_entities.itervalues():
@@ -1976,10 +2197,8 @@ class BaseDatastore(BaseTransactionManager, BaseIndexManager):
 
     if transaction:
 
-      Check(len(grouped_keys) == 1,
-            'Transactions cannot span entity groups')
       txn = self.GetTxn(transaction, trusted, calling_app)
-      for key in grouped_keys.values()[0]:
+      for key in raw_keys:
         txn.Delete(key)
     else:
 
@@ -2008,53 +2227,40 @@ class BaseDatastore(BaseTransactionManager, BaseIndexManager):
       app: The app to create the Txns on.
       op: A function to run in each Txn.
     """
-    txn = self._BeginTransaction(app)
+    txn = self._BeginTransaction(app, False)
     for value in values:
       op(txn, value)
     txn.Commit()
 
-  def _CheckHasIndex(self, query):
+  def _CheckHasIndex(self, query, trusted=False, calling_app=None):
     """Checks if the query can be satisfied given the existing indexes.
 
     Args:
-      query: the datstore_pb.Query to check
+      query: the datastore_pb.Query to check
+      trusted: True if the calling app is trusted (like dev_admin_console)
+      calling_app: app_id of the current running application
     """
-
-
     if query.kind() in self._pseudo_kinds or not self._require_indexes:
       return
 
+    minimal_index = datastore_index.MinimalCompositeIndexForQuery(query,
+        (datastore_index.ProtoToIndexDefinition(index)
+        for index in self.GetIndexes(query.app(), trusted, calling_app)
+        if index.state() == datastore_pb.CompositeIndex.READ_WRITE))
+    if minimal_index is not None:
+      msg = ('This query requires a composite index that is not defined. '
+          'You must update the index.yaml file in your application root.')
+      if not minimal_index[0]:
 
-    required, kind, ancestor, props, num_eq_filters = datastore_index.CompositeIndexForQuery(query)
-
-    if not required:
-      return
-
-    indexes = self.GetIndexes(query.app())
-    eq_filters_set = set(props[:num_eq_filters])
-    remaining_filters = props[num_eq_filters:]
-    required_key = kind, ancestor, props
-    for index in indexes:
-      definition = datastore_index.ProtoToIndexDefinition(index)
-      index_key = datastore_index.IndexToKey(definition)
-      if required_key == index_key:
-        break
-      if num_eq_filters > 1 and (kind, ancestor) == index_key[:2]:
-
-        this_props = index_key[2]
-        this_eq_filters_set = set(this_props[:num_eq_filters])
-        this_remaining_filters = this_props[num_eq_filters:]
-        if (eq_filters_set == this_eq_filters_set and
-            remaining_filters == this_remaining_filters):
-          break
-    else:
-
-      raise apiproxy_errors.ApplicationError(
-          datastore_pb.Error.NEED_INDEX,
-          "This query requires a composite index that is not defined. "
-          "You must update the index.yaml file in your application root.")
+        yaml = datastore_index.IndexYamlForQuery(*minimal_index[1:])
+        msg += '\nThe following index is the minimum index required:\n' + yaml
+      raise apiproxy_errors.ApplicationError(datastore_pb.Error.NEED_INDEX, msg)
 
 
+
+  def Write(self):
+    """Writes the datastore to disk."""
+    raise NotImplemented
 
   def _GetQueryCursor(self, query, filters, orders):
     """Runs the given datastore_pb.Query and returns a QueryCursor for it.
@@ -2214,7 +2420,7 @@ class DatastoreStub(object):
       return
 
     transaction = request.add_request_list()[0].transaction()
-    txn = self._datastore.GetTxn(transaction)
+    txn = self._datastore.GetTxn(transaction, self._trusted, self._app_id)
     new_actions = []
     for add_request in request.add_request_list():
 
@@ -2231,7 +2437,8 @@ class DatastoreStub(object):
 
   def _Dynamic_BeginTransaction(self, req, transaction):
     CheckAppId(self._trusted, self._app_id, req.app())
-    transaction.CopyFrom(self._datastore.BeginTransaction(req.app()))
+    transaction.CopyFrom(self._datastore.BeginTransaction(
+        req.app(), req.allow_multiple_eg()))
 
   def _Dynamic_Commit(self, transaction, _):
     CheckAppId(self._trusted, self._app_id, transaction.app())
@@ -2317,20 +2524,32 @@ def _GuessOrders(filters, orders):
   return orders
 
 
-def _GetQueryCursor(results, query, filters, orders):
-  """Get the generate a cursor for the given datastore_pb.Query."""
-  orders = _GuessOrders(filters, orders)
+def _MakeQuery(query, filters, orders):
+  """Make a datastore_query.Query for the given datastore_pb.Query.
 
+  Overrides filters and orders in query with the specified arguments."""
   clone = datastore_pb.Query()
   clone.CopyFrom(query)
   clone.clear_filter()
   clone.clear_order()
   clone.filter_list().extend(filters)
   clone.order_list().extend(orders)
+  return datastore_query.Query._from_pb(clone)
 
-  dsquery = datastore_query.Query._from_pb(clone)
-  cursor = ListCursor(query, datastore_query.apply_query(dsquery, results),
-                      dsquery._order.cmp_for_filter(dsquery._filter_predicate),
-                      set(order.property() for order in orders
-                          if order.property() != '__key__'))
-  return cursor
+
+def _ExecuteQuery(results, query, filters, orders):
+  """Executes the query on a superset of its results.
+
+  Args:
+    results: superset of results for query.
+    query: a datastore_pb.Query.
+    filters: the filters from query.
+    orders: the orders from query.
+
+  Returns:
+    A ListCursor over the results of applying query to results.
+  """
+  orders = _GuessOrders(filters, orders)
+  dsquery = _MakeQuery(query, filters, orders)
+  return ListCursor(query, dsquery, orders,
+                    datastore_query.apply_query(dsquery, results))

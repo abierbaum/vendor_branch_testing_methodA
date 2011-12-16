@@ -29,9 +29,11 @@
 
 
 import cgi
+import collections
 import csv
 import cStringIO
 import datetime
+import decimal
 import logging
 import math
 import mimetypes
@@ -46,7 +48,7 @@ import traceback
 import types
 import urllib
 import urlparse
-import wsgiref.handlers
+
 
 
 
@@ -73,7 +75,8 @@ from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.admin import datastore_stats_generator
 from google.appengine.ext.db import metadata
-from google.appengine.ext.webapp import template
+from google.appengine.ext.webapp import _template
+from google.appengine.ext.webapp import util
 
 
 _DEBUG = True
@@ -82,6 +85,48 @@ _DEBUG = True
 _UsecToSec = taskqueue_stub._UsecToSec
 _FormatEta = taskqueue_stub._FormatEta
 _EtaDelta = taskqueue_stub._EtaDelta
+
+
+
+
+class _AhAdminXsrfToken_(db.Model):
+  """Model class used to persist the XSRF token."""
+
+  XSRF_KEY_NAME = '_XSRF_'
+
+  xsrf_token = db.StringProperty()
+
+
+def get_xsrf_token():
+  """Return the XSRF token.
+
+  This is read from the datastore.  If no token is present in the
+  datastore, we create a random token and insert it.
+  """
+  entity = _AhAdminXsrfToken_.get_by_key_name(_AhAdminXsrfToken_.XSRF_KEY_NAME)
+  if not entity:
+    randints = ['%08x' % (random.randrange(-2**31, 2**31-1) & (2**32-1))
+                for i in range(6)]
+    xsrf_token = '_'.join(randints)
+    entity = _AhAdminXsrfToken_(key_name=_AhAdminXsrfToken_.XSRF_KEY_NAME,
+                                xsrf_token=xsrf_token)
+    entity.put()
+  return entity.xsrf_token
+
+
+def xsrf_required(method):
+  """Decorator to protect post() handlers against XSRF attacks."""
+  def xsrf_required_decorator(self):
+    expected_token = get_xsrf_token()
+    actual_token = self.request.get('xsrf_token')
+    if actual_token != expected_token:
+      self.response.set_status(403, 'Invalid XSRF token')
+      self.response.out.write('<h1>Invalid XSRF token</h1>\n' +
+                              '<p>Please reload the form page</n>\n' +
+                              ' '*512)
+    else:
+      method(self)
+  return xsrf_required_decorator
 
 
 def ustr(value):
@@ -142,6 +187,7 @@ class BaseRequestHandler(webapp.RequestHandler):
         'request': self.request,
         'home_path': base_path + DefaultPageHandler.PATH,
         'datastore_path': base_path + DatastoreQueryHandler.PATH,
+        'datastore_indexes': base_path + DatastoreGetIndexesHandler.PATH,
         'datastore_edit_path': base_path + DatastoreEditHandler.PATH,
         'datastore_batch_edit_path': base_path + DatastoreBatchEditHandler.PATH,
         'datastore_stats_path': base_path + DatastoreStatsHandler.PATH,
@@ -153,6 +199,7 @@ class BaseRequestHandler(webapp.RequestHandler):
         'xmpp_path': base_path + XMPPPageHandler.PATH,
         'inboundmail_path': base_path + InboundMailPageHandler.PATH,
         'backends_path': base_path + BackendsPageHandler.PATH,
+        'xsrf_token': get_xsrf_token(),
       }
     if HAVE_CRON:
       values['cron_path'] = base_path + CronPageHandler.PATH
@@ -160,7 +207,7 @@ class BaseRequestHandler(webapp.RequestHandler):
     values.update(template_values)
     directory = os.path.dirname(__file__)
     path = os.path.join(directory, os.path.join('templates', template_name))
-    self.response.out.write(template.render(path, values, debug=_DEBUG))
+    self.response.out.write(_template.render(path, values, debug=_DEBUG))
 
   def base_path(self):
     """Returns the base path of this admin app, which is chosen by the user.
@@ -231,6 +278,7 @@ class InteractiveExecuteHandler(BaseRequestHandler):
 
   PATH = InteractivePageHandler.PATH + '/execute'
 
+  @xsrf_required
   def post(self):
 
     save_stdout = sys.stdout
@@ -454,7 +502,8 @@ class QueuesPageHandler(BaseRequestHandler):
   """Shows information about configured (and default) task queues."""
   PATH = '/queues'
 
-  def __init__(self):
+  def __init__(self, *args, **kwargs):
+    super(QueuesPageHandler, self).__init__(*args, **kwargs)
     self.helper = TaskQueueHelper()
 
   def get(self):
@@ -463,6 +512,7 @@ class QueuesPageHandler(BaseRequestHandler):
     values = {'queues': self.helper.get_queues(now)}
     self.generate('queues.html', values)
 
+  @xsrf_required
   def post(self):
     """Handle modifying actions and/or redirect to GET page."""
     queue_name = self.request.get('queue')
@@ -482,7 +532,8 @@ class TasksPageHandler(BaseRequestHandler):
   MAX_TASKS_TO_FETCH = 1000
   MIN_TASKS_TO_FETCH = 200
 
-  def __init__(self):
+  def __init__(self, *args, **kwargs):
+    super(TasksPageHandler, self).__init__(*args, **kwargs)
     self.helper = TaskQueueHelper()
     self.prev_page = None
     self.next_page = None
@@ -611,6 +662,7 @@ class TasksPageHandler(BaseRequestHandler):
     }
     self.generate('tasks.html', values)
 
+  @xsrf_required
   def post(self):
     self.parse_arguments()
     self.task_name = self.request.get('task')
@@ -626,7 +678,8 @@ class BackendsPageHandler(BaseRequestHandler):
 
   PATH = '/backends'
 
-  def __init__(self):
+  def __init__(self, *args, **kwargs):
+    super(BackendsPageHandler, self).__init__(*args, **kwargs)
     self.stub = apiproxy_stub_map.apiproxy.GetStub('system')
 
   def get(self):
@@ -695,6 +748,7 @@ class BackendsPageHandler(BaseRequestHandler):
     }
     self.generate('backend.html', values)
 
+  @xsrf_required
   def post(self):
     if self.request.get('action:startbackend'):
       self.stub.start_backend(self.request.get('backend'))
@@ -861,6 +915,7 @@ class MemcachePageHandler(BaseRequestHandler):
                                urllib.quote_plus(v.encode('utf8')))
                     for k, v in query.iteritems())
 
+  @xsrf_required
   def post(self):
     """Handle modifying actions and/or redirect to GET page."""
     next_param = {}
@@ -914,6 +969,33 @@ class MemcachePageHandler(BaseRequestHandler):
     if next_param:
       next = '%s?%s' % (next, self._urlencode(next_param))
     self.redirect(next)
+
+
+class DatastoreGetIndexesHandler(BaseRequestHandler):
+  """Our main request handler that displays indexes"""
+
+  PATH = '/datastore_indexes'
+
+  def get(self):
+    indexes = collections.defaultdict(list)
+    for index, state in datastore.GetIndexes():
+      properties = []
+      for property_name, sort_direction in index.Properties():
+        properties.append({
+          'name': property_name,
+          'sort_symbol': ('&#x25b2;', '&#x25bc;')[sort_direction - 1],
+          'sort_direction': ('ASCENDING', 'DESCENDING')[sort_direction - 1]
+        })
+      kind = str(index.Kind())
+      kind_indexes = indexes[kind]
+      kind_indexes.append({
+        'id': str(index.Id()),
+        'status': ('BUILDING', 'SERVING', 'DELETING', 'ERROR')[state],
+        'has_ancestor': bool(index.HasAncestor()),
+        'properties': properties
+      })
+    self.generate('datastore_indexes.html',
+                  {'request': self.request, 'indexes': sorted(indexes.items())})
 
 
 class DatastoreRequestHandler(BaseRequestHandler):
@@ -1005,6 +1087,68 @@ class DatastoreQueryHandler(DatastoreRequestHandler):
 
   PATH = '/datastore'
 
+  _ONE_MILLION = decimal.Decimal(1000000)
+
+  _DOLLARS_PER_WRITE = 1/_ONE_MILLION
+
+  _PENNIES_PER_WRITE = _DOLLARS_PER_WRITE/100
+
+  def _writes_to_pennies(self, writes):
+    return self._PENNIES_PER_WRITE * writes
+
+  def _calculate_writes_for_built_in_indices(self, entity):
+    writes = 0
+    for prop_name in entity.keys():
+      if not prop_name in entity.unindexed_properties():
+
+
+        prop_vals = entity[prop_name]
+        if isinstance(prop_vals, (list)):
+          num_prop_vals = len(prop_vals)
+        else:
+          num_prop_vals = 1
+        writes += 2 * num_prop_vals
+    return writes
+
+  def _calculate_writes_for_composite_index(self, entity, index):
+    composite_index_value_count = 1
+    for prop_name, _ in index.Properties():
+      if not prop_name in entity.keys() or (
+          prop_name in entity.unindexed_properties()):
+        return 0
+      prop_vals = entity[prop_name]
+      if isinstance(prop_vals, (list)):
+        composite_index_value_count = (
+            composite_index_value_count * len(prop_vals))
+
+
+
+
+
+      ancestor_count = 1
+      if index.HasAncestor():
+        key = entity.key().parent()
+        while key != None:
+          ancestor_count = ancestor_count + 1
+          key = key.parent()
+    return composite_index_value_count * ancestor_count
+
+  def _get_write_ops(self, entity):
+
+    writes = 2 + self._calculate_writes_for_built_in_indices(entity)
+
+
+    for index, _ in datastore.GetIndexes():
+      if index.Kind() != entity.kind():
+        continue
+      writes = writes + self._calculate_writes_for_composite_index(
+          entity, index)
+    return writes
+
+  def _get_creation_cost_analysis(self, entity):
+    write_ops = self._get_write_ops(entity)
+    return (write_ops, self._writes_to_pennies(write_ops))
+
   def get_kinds(self, namespace):
     """Get sorted list of kind names the datastore knows about.
 
@@ -1051,6 +1195,7 @@ class DatastoreQueryHandler(DatastoreRequestHandler):
     entities = []
     edit_path = self.base_path() + DatastoreEditHandler.PATH
     for entity in result_set:
+      write_ops = self._get_write_ops(entity)
       attributes = []
       for key in keys:
         if entity.has_key(key):
@@ -1073,6 +1218,7 @@ class DatastoreQueryHandler(DatastoreRequestHandler):
         'key': ustr(entity.key()),
         'key_name': ustr(entity.key().name()),
         'key_id': entity.key().id(),
+        'write_ops' : write_ops,
         'shortened_key': str(entity.key())[:8] + '...',
         'attributes': attributes,
         'edit_uri': edit_path + '?key=' + str(entity.key()) + '&kind=' + urllib.quote(ustr(self.request.get('kind'))) + '&next=' + urllib.quote(ustr(self.request.uri)),
@@ -1084,7 +1230,7 @@ class DatastoreQueryHandler(DatastoreRequestHandler):
     max_pager_links = 8
     current_page = start / num
     num_pages = int(math.ceil(total * 1.0 / num))
-    page_start = max(math.floor(current_page - max_pager_links / 2), 0)
+    page_start = max(int(math.floor(current_page - max_pager_links / 2)), 0)
     page_end = min(page_start + max_pager_links, num_pages)
 
     pages = []
@@ -1140,6 +1286,7 @@ class DatastoreBatchEditHandler(DatastoreRequestHandler):
 
   PATH = DatastoreQueryHandler.PATH + '/batchedit'
 
+  @xsrf_required
   def post(self):
     """Handle POST."""
     kind = self.request.get('kind')
@@ -1273,6 +1420,7 @@ class DatastoreEditHandler(DatastoreRequestHandler):
       'parent_key_string': parent_key_string,
     })
 
+  @xsrf_required
   def post(self):
 
     kind = self.request.get('kind')
@@ -1333,6 +1481,7 @@ class DatastoreStatsHandler(BaseRequestHandler):
         'msg': self.request.get('msg', None)}
     self.generate('datastore_stats.html', values)
 
+  @xsrf_required
   def post(self):
     """Handle actions and redirect to GET page."""
     app_id = self.request.get('app_id', None)
@@ -1808,37 +1957,30 @@ def PseudoBreadcrumbs(key):
   return ' > '.join(parts)
 
 
+handlers = [
+    ('.*' + DatastoreGetIndexesHandler.PATH, DatastoreGetIndexesHandler),
+    ('.*' + DatastoreQueryHandler.PATH, DatastoreQueryHandler),
+    ('.*' + DatastoreEditHandler.PATH, DatastoreEditHandler),
+    ('.*' + DatastoreBatchEditHandler.PATH, DatastoreBatchEditHandler),
+    ('.*' + DatastoreStatsHandler.PATH, DatastoreStatsHandler),
+    ('.*' + InteractivePageHandler.PATH, InteractivePageHandler),
+    ('.*' + InteractiveExecuteHandler.PATH, InteractiveExecuteHandler),
+    ('.*' + MemcachePageHandler.PATH, MemcachePageHandler),
+    ('.*' + ImageHandler.PATH, ImageHandler),
+    ('.*' + QueuesPageHandler.PATH, QueuesPageHandler),
+    ('.*' + TasksPageHandler.PATH, TasksPageHandler),
+    ('.*' + XMPPPageHandler.PATH, XMPPPageHandler),
+    ('.*' + InboundMailPageHandler.PATH, InboundMailPageHandler),
+    ('.*' + BackendsPageHandler.PATH, BackendsPageHandler),
+    ('.*', DefaultPageHandler),
+  ]
+if HAVE_CRON:
+  handlers.insert(0, ('.*' + CronPageHandler.PATH, CronPageHandler))
+application = webapp.WSGIApplication(handlers, debug=_DEBUG)
+
+
 def main():
-  handlers = [
-      ('.*' + DatastoreQueryHandler.PATH, DatastoreQueryHandler),
-      ('.*' + DatastoreEditHandler.PATH, DatastoreEditHandler),
-      ('.*' + DatastoreBatchEditHandler.PATH, DatastoreBatchEditHandler),
-      ('.*' + DatastoreStatsHandler.PATH, DatastoreStatsHandler),
-      ('.*' + InteractivePageHandler.PATH, InteractivePageHandler),
-      ('.*' + InteractiveExecuteHandler.PATH, InteractiveExecuteHandler),
-      ('.*' + MemcachePageHandler.PATH, MemcachePageHandler),
-      ('.*' + ImageHandler.PATH, ImageHandler),
-      ('.*' + QueuesPageHandler.PATH, QueuesPageHandler),
-      ('.*' + TasksPageHandler.PATH, TasksPageHandler),
-      ('.*' + XMPPPageHandler.PATH, XMPPPageHandler),
-      ('.*' + InboundMailPageHandler.PATH, InboundMailPageHandler),
-      ('.*' + BackendsPageHandler.PATH, BackendsPageHandler),
-      ('.*', DefaultPageHandler),
-    ]
-  if HAVE_CRON:
-    handlers.insert(0, ('.*' + CronPageHandler.PATH, CronPageHandler))
-  application = webapp.WSGIApplication(handlers, debug=_DEBUG)
-  wsgiref.handlers.CGIHandler().run(application)
-
-
-
-
-import django
-if django.VERSION[:2] < (0, 97):
-  from django.template import defaultfilters
-  def safe(text, dummy=None):
-    return text
-  defaultfilters.register.filter("safe", safe)
+  util.run_wsgi_app(application)
 
 
 if __name__ == '__main__':

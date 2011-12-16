@@ -24,6 +24,13 @@ import dummy_thread as thread
 __pychecker__ = """maxreturns=0 maxbranches=0 no-callinit
                    unusednames=printElemNumber,debug_strs no-special"""
 
+if hasattr(ProtocolBuffer, 'ExtendableProtocolMessage'):
+  _extension_runtime = True
+  _ExtendableProtocolMessage = ProtocolBuffer.ExtendableProtocolMessage
+else:
+  _extension_runtime = False
+  _ExtendableProtocolMessage = ProtocolBuffer.ProtocolMessage
+
 class UserServiceError(ProtocolBuffer.ProtocolMessage):
 
 
@@ -109,6 +116,7 @@ class UserServiceError(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.UserServiceError'
 class CreateLoginURLRequest(ProtocolBuffer.ProtocolMessage):
   has_destination_url_ = 0
   destination_url_ = ""
@@ -276,6 +284,7 @@ class CreateLoginURLRequest(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.CreateLoginURLRequest'
 class CreateLoginURLResponse(ProtocolBuffer.ProtocolMessage):
   has_login_url_ = 0
   login_url_ = ""
@@ -375,6 +384,7 @@ class CreateLoginURLResponse(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.CreateLoginURLResponse'
 class CreateLogoutURLRequest(ProtocolBuffer.ProtocolMessage):
   has_destination_url_ = 0
   destination_url_ = ""
@@ -508,6 +518,7 @@ class CreateLogoutURLRequest(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.CreateLogoutURLRequest'
 class CreateLogoutURLResponse(ProtocolBuffer.ProtocolMessage):
   has_logout_url_ = 0
   logout_url_ = ""
@@ -607,6 +618,7 @@ class CreateLogoutURLResponse(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.CreateLogoutURLResponse'
 class GetOAuthUserRequest(ProtocolBuffer.ProtocolMessage):
   has_scope_ = 0
   scope_ = ""
@@ -701,6 +713,7 @@ class GetOAuthUserRequest(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.GetOAuthUserRequest'
 class GetOAuthUserResponse(ProtocolBuffer.ProtocolMessage):
   has_email_ = 0
   email_ = ""
@@ -946,6 +959,7 @@ class GetOAuthUserResponse(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.GetOAuthUserResponse'
 class CheckOAuthSignatureRequest(ProtocolBuffer.ProtocolMessage):
 
   def __init__(self, contents=None):
@@ -1010,6 +1024,7 @@ class CheckOAuthSignatureRequest(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.CheckOAuthSignatureRequest'
 class CheckOAuthSignatureResponse(ProtocolBuffer.ProtocolMessage):
   has_oauth_consumer_key_ = 0
   oauth_consumer_key_ = ""
@@ -1109,6 +1124,7 @@ class CheckOAuthSignatureResponse(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.CheckOAuthSignatureResponse'
 class CreateFederatedLoginRequest(ProtocolBuffer.ProtocolMessage):
   has_claimed_id_ = 0
   claimed_id_ = ""
@@ -1281,6 +1297,7 @@ class CreateFederatedLoginRequest(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.CreateFederatedLoginRequest'
 class CreateFederatedLoginResponse(ProtocolBuffer.ProtocolMessage):
   has_redirected_url_ = 0
   redirected_url_ = ""
@@ -1380,6 +1397,7 @@ class CreateFederatedLoginResponse(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.CreateFederatedLoginResponse'
 class CreateFederatedLogoutRequest(ProtocolBuffer.ProtocolMessage):
   has_destination_url_ = 0
   destination_url_ = ""
@@ -1479,6 +1497,7 @@ class CreateFederatedLogoutRequest(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.CreateFederatedLogoutRequest'
 class CreateFederatedLogoutResponse(ProtocolBuffer.ProtocolMessage):
   has_logout_url_ = 0
   logout_url_ = ""
@@ -1578,5 +1597,8 @@ class CreateFederatedLogoutResponse(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.CreateFederatedLogoutResponse'
+if _extension_runtime:
+  pass
 
 __all__ = ['UserServiceError','CreateLoginURLRequest','CreateLoginURLResponse','CreateLogoutURLRequest','CreateLogoutURLResponse','GetOAuthUserRequest','GetOAuthUserResponse','CheckOAuthSignatureRequest','CheckOAuthSignatureResponse','CreateFederatedLoginRequest','CreateFederatedLoginResponse','CreateFederatedLogoutRequest','CreateFederatedLogoutResponse']

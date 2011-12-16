@@ -49,6 +49,7 @@ import errno
 import getpass
 import logging
 import os
+import re
 import shutil
 import signal
 import socket
@@ -60,6 +61,7 @@ import time
 
 from google.appengine.ext.remote_api import handler
 from google.appengine.ext.remote_api import remote_api_pb
+from google.appengine.runtime import apiproxy_errors
 from google.appengine.tools import dev_appserver
 
 GAB_WORK_DIR = None
@@ -72,18 +74,22 @@ SOCKET_API = os.path.join(tempfile.gettempdir(), 'dev_appserver_%s_socket_api')
 HEALTH_CHECK_PATH = '/_appengine_delegate_health_check'
 INTERNAL_SERVER_ERROR = ('Status: 500 Internal Server Error\r\n' +
     'Content-Type: text/plain\r\n\r\nInternal Server Error')
-MAX_START_TIME = 1
+MAX_START_TIME = 10
 
 
 
 HEADER_MAP = {
     'APPLICATION_ID': 'X-AppEngine-Inbound-AppId',
     'CONTENT_TYPE': 'Content-Type',
+    'CURRENT_VERSION_ID': 'X-AppEngine-Inbound-Version-Id',
     'REMOTE_ADDR': 'X-AppEngine-Remote-Addr',
     'USER_EMAIL': 'X-AppEngine-Inbound-User-Email',
     'USER_ID': 'X-AppEngine-Inbound-User-Id',
     'USER_IS_ADMIN': 'X-AppEngine-Inbound-User-Is-Admin',
 }
+
+
+ENV_PASSTHROUGH = re.compile(r'^(BACKEND_PORT\..*|INSTANCE_ID)$')
 
 
 APP_CONFIG = None
@@ -211,6 +217,12 @@ class RemoteAPIHandler(asyncore.dispatcher_with_send):
     rapi_error = 'unknown error'
     try:
       rapi_result = RAPI_HANDLER.ExecuteRequest(req)
+    except apiproxy_errors.CallNotFoundError, e:
+
+
+      service_name = req.service_name()
+      method = req.method()
+      rapi_error = 'call not found for %s/%s' % (service_name, method)
     except Exception, e:
       rapi_error = str(e)
 
@@ -230,25 +242,39 @@ class RemoteAPIHandler(asyncore.dispatcher_with_send):
 
 
 
-def find_go_files_mtime(basedir):
+def find_app_files(basedir):
   if not basedir.endswith(os.path.sep):
     basedir = basedir + os.path.sep
-  files, dirs, mtime = [], [basedir], 0
+  files, dirs = {}, [basedir]
   while dirs:
     dname = dirs.pop()
     for entry in os.listdir(dname):
       ename = os.path.join(dname, entry)
-      if (APP_CONFIG.skip_files.match(ename) or
-          APP_CONFIG.nobuild_files.match(ename)):
+      if APP_CONFIG.skip_files.match(ename):
         continue
-      s = os.stat(ename)
+      try:
+        s = os.stat(ename)
+      except OSError, e:
+        logging.warn('%s', e)
+        continue
       if stat.S_ISDIR(s[stat.ST_MODE]):
         dirs.append(ename)
         continue
-      if not ename.endswith('.go'):
-        continue
-      files.append(ename[len(basedir):])
-      mtime = max(mtime, s[stat.ST_MTIME])
+      files[ename[len(basedir):]] = s[stat.ST_MTIME]
+  return files
+
+
+
+
+def find_go_files_mtime(app_files):
+  files, mtime = [], 0
+  for f, mt in app_files.items():
+    if not f.endswith('.go'):
+      continue
+    if APP_CONFIG.nobuild_files.match(f):
+      continue
+    files.append(f)
+    mtime = max(mtime, mt)
   return files, mtime
 
 
@@ -280,6 +306,7 @@ class GoApp:
   def __init__(self, root_path):
     self.root_path = root_path
     self.proc = None
+    self.proc_start = 0
     self.goroot = os.path.join(
 
         up(__file__, 5),
@@ -295,22 +322,40 @@ class GoApp:
     if not self.arch:
       raise Exception('bad goroot: no compiler found')
 
+    atexit.register(self.cleanup)
+
+  def cleanup(self):
+    if self.proc:
+      os.kill(self.proc.pid, signal.SIGTERM)
+
   def make_and_run(self):
-    go_files, go_mtime = find_go_files_mtime(self.root_path)
+    app_files = find_app_files(self.root_path)
+    go_files, go_mtime = find_go_files_mtime(app_files)
     if not go_files:
       raise Exception('no .go files in %s', self.root_path)
-    app_name, app_mtime = os.path.join(GAB_WORK_DIR, GO_APP_NAME), 0
+    app_mtime = max(app_files.values())
+    bin_name, bin_mtime = os.path.join(GAB_WORK_DIR, GO_APP_NAME), 0
     try:
-      app_mtime = os.stat(app_name)[stat.ST_MTIME]
+      bin_mtime = os.stat(bin_name)[stat.ST_MTIME]
     except:
       pass
 
-    if go_mtime >= app_mtime:
-      if self.proc:
-        os.kill(self.proc.pid, signal.SIGTERM)
-        self.proc.wait()
-        self.proc = None
-      self.build(go_files, app_name)
+
+
+
+    rebuild, restart = False, False
+    if go_mtime >= bin_mtime:
+      rebuild, restart = True, True
+    elif app_mtime > self.proc_start:
+      restart = True
+
+    if restart and self.proc:
+      os.kill(self.proc.pid, signal.SIGTERM)
+      self.proc.wait()
+      self.proc = None
+    if rebuild:
+      self.build(go_files)
+
 
     if not self.proc or self.proc.poll() is not None:
       logging.info('running ' + GO_APP_NAME)
@@ -319,13 +364,17 @@ class GoApp:
           'PWD': self.root_path,
           'TZ': 'UTC',
       }
-      self.proc = subprocess.Popen([app_name,
+      for k, v in os.environ.items():
+        if ENV_PASSTHROUGH.match(k):
+          env[k] = v
+      self.proc_start = app_mtime
+      self.proc = subprocess.Popen([bin_name,
           '-addr_http', 'unix:' + SOCKET_HTTP,
           '-addr_api', 'unix:' + SOCKET_API],
           cwd=self.root_path, env=env)
       wait_until_go_app_ready(self.proc.pid)
 
-  def build(self, go_files, app_name):
+  def build(self, go_files):
     logging.info('building ' + GO_APP_NAME)
     if not os.path.exists(GAB_WORK_DIR):
       os.makedirs(GAB_WORK_DIR)

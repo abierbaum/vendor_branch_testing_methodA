@@ -24,6 +24,13 @@ import dummy_thread as thread
 __pychecker__ = """maxreturns=0 maxbranches=0 no-callinit
                    unusednames=printElemNumber,debug_strs no-special"""
 
+if hasattr(ProtocolBuffer, 'ExtendableProtocolMessage'):
+  _extension_runtime = True
+  _ExtendableProtocolMessage = ProtocolBuffer.ExtendableProtocolMessage
+else:
+  _extension_runtime = False
+  _ExtendableProtocolMessage = ProtocolBuffer.ProtocolMessage
+
 class ImagesServiceError(ProtocolBuffer.ProtocolMessage):
 
 
@@ -109,6 +116,7 @@ class ImagesServiceError(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImagesServiceError'
 class ImagesServiceTransform(ProtocolBuffer.ProtocolMessage):
 
 
@@ -194,6 +202,7 @@ class ImagesServiceTransform(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImagesServiceTransform'
 class Transform(ProtocolBuffer.ProtocolMessage):
   has_width_ = 0
   width_ = 0
@@ -696,6 +705,7 @@ class Transform(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.Transform'
 class ImageData(ProtocolBuffer.ProtocolMessage):
   has_content_ = 0
   content_ = ""
@@ -829,6 +839,7 @@ class ImageData(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImageData'
 class InputSettings(ProtocolBuffer.ProtocolMessage):
 
 
@@ -970,6 +981,7 @@ class InputSettings(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.InputSettings'
 class OutputSettings(ProtocolBuffer.ProtocolMessage):
 
 
@@ -1113,6 +1125,7 @@ class OutputSettings(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.OutputSettings'
 class ImagesTransformRequest(ProtocolBuffer.ProtocolMessage):
   has_image_ = 0
   has_output_ = 0
@@ -1362,6 +1375,7 @@ class ImagesTransformRequest(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImagesTransformRequest'
 class ImagesTransformResponse(ProtocolBuffer.ProtocolMessage):
   has_image_ = 0
   has_source_metadata_ = 0
@@ -1499,6 +1513,7 @@ class ImagesTransformResponse(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImagesTransformResponse'
 class CompositeImageOptions(ProtocolBuffer.ProtocolMessage):
 
 
@@ -1779,6 +1794,7 @@ class CompositeImageOptions(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.CompositeImageOptions'
 class ImagesCanvas(ProtocolBuffer.ProtocolMessage):
   has_width_ = 0
   width_ = 0
@@ -1994,6 +2010,7 @@ class ImagesCanvas(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImagesCanvas'
 class ImagesCompositeRequest(ProtocolBuffer.ProtocolMessage):
   has_canvas_ = 0
 
@@ -2203,6 +2220,7 @@ class ImagesCompositeRequest(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImagesCompositeRequest'
 class ImagesCompositeResponse(ProtocolBuffer.ProtocolMessage):
   has_image_ = 0
 
@@ -2306,6 +2324,7 @@ class ImagesCompositeResponse(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImagesCompositeResponse'
 class ImagesHistogramRequest(ProtocolBuffer.ProtocolMessage):
   has_image_ = 0
 
@@ -2409,6 +2428,7 @@ class ImagesHistogramRequest(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImagesHistogramRequest'
 class ImagesHistogram(ProtocolBuffer.ProtocolMessage):
 
   def __init__(self, contents=None):
@@ -2598,6 +2618,7 @@ class ImagesHistogram(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImagesHistogram'
 class ImagesHistogramResponse(ProtocolBuffer.ProtocolMessage):
   has_histogram_ = 0
 
@@ -2701,6 +2722,7 @@ class ImagesHistogramResponse(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImagesHistogramResponse'
 class ImagesGetUrlBaseRequest(ProtocolBuffer.ProtocolMessage):
   has_blob_key_ = 0
   blob_key_ = ""
@@ -2800,6 +2822,7 @@ class ImagesGetUrlBaseRequest(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImagesGetUrlBaseRequest'
 class ImagesGetUrlBaseResponse(ProtocolBuffer.ProtocolMessage):
   has_url_ = 0
   url_ = ""
@@ -2899,5 +2922,8 @@ class ImagesGetUrlBaseResponse(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.ImagesGetUrlBaseResponse'
+if _extension_runtime:
+  pass
 
 __all__ = ['ImagesServiceError','ImagesServiceTransform','Transform','ImageData','InputSettings','OutputSettings','ImagesTransformRequest','ImagesTransformResponse','CompositeImageOptions','ImagesCanvas','ImagesCompositeRequest','ImagesCompositeResponse','ImagesHistogramRequest','ImagesHistogram','ImagesHistogramResponse','ImagesGetUrlBaseRequest','ImagesGetUrlBaseResponse']

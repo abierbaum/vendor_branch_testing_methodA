@@ -24,15 +24,24 @@ import dummy_thread as thread
 __pychecker__ = """maxreturns=0 maxbranches=0 no-callinit
                    unusednames=printElemNumber,debug_strs no-special"""
 
+if hasattr(ProtocolBuffer, 'ExtendableProtocolMessage'):
+  _extension_runtime = True
+  _ExtendableProtocolMessage = ProtocolBuffer.ExtendableProtocolMessage
+else:
+  _extension_runtime = False
+  _ExtendableProtocolMessage = ProtocolBuffer.ProtocolMessage
+
 class SystemServiceError(ProtocolBuffer.ProtocolMessage):
 
 
   OK           =    0
   INTERNAL_ERROR =    1
+  BACKEND_REQUIRED =    2
 
   _ErrorCode_NAMES = {
     0: "OK",
     1: "INTERNAL_ERROR",
+    2: "BACKEND_REQUIRED",
   }
 
   def ErrorCode_Name(cls, x): return cls._ErrorCode_NAMES.get(x, "")
@@ -101,6 +110,7 @@ class SystemServiceError(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.SystemServiceError'
 class SystemStat(ProtocolBuffer.ProtocolMessage):
   has_current_ = 0
   current_ = 0.0
@@ -365,6 +375,7 @@ class SystemStat(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.SystemStat'
 class GetSystemStatsRequest(ProtocolBuffer.ProtocolMessage):
 
   def __init__(self, contents=None):
@@ -429,6 +440,7 @@ class GetSystemStatsRequest(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.GetSystemStatsRequest'
 class GetSystemStatsResponse(ProtocolBuffer.ProtocolMessage):
   has_cpu_ = 0
   cpu_ = None
@@ -588,6 +600,7 @@ class GetSystemStatsResponse(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.GetSystemStatsResponse'
 class StartBackgroundRequestRequest(ProtocolBuffer.ProtocolMessage):
 
   def __init__(self, contents=None):
@@ -652,6 +665,7 @@ class StartBackgroundRequestRequest(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.StartBackgroundRequestRequest'
 class StartBackgroundRequestResponse(ProtocolBuffer.ProtocolMessage):
   has_request_id_ = 0
   request_id_ = ""
@@ -746,5 +760,8 @@ class StartBackgroundRequestResponse(ProtocolBuffer.ProtocolMessage):
 
   _STYLE = """"""
   _STYLE_CONTENT_TYPE = """"""
+  _PROTO_DESCRIPTOR_NAME = 'apphosting.StartBackgroundRequestResponse'
+if _extension_runtime:
+  pass
 
 __all__ = ['SystemServiceError','SystemStat','GetSystemStatsRequest','GetSystemStatsResponse','StartBackgroundRequestRequest','StartBackgroundRequestResponse']
