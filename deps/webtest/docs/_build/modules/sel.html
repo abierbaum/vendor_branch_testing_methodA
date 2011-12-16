@@ -1,0 +1,508 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>webtest.sel – Functional Testing with Selenium &mdash; WebTest v1.3 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="WebTest v1.3 documentation" href="../index.html" />
+    <link rel="prev" title="webtest – Functional Testing of Web Applications" href="webtest.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="webtest.html" title="webtest – Functional Testing of Web Applications"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">WebTest v1.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-webtest.sel">
+<span id="webtest-sel-functional-testing-with-selenium"></span><h1><a class="reference internal" href="#module-webtest.sel" title="webtest.sel"><tt class="xref py py-mod docutils literal"><span class="pre">webtest.sel</span></tt></a> &#8211; Functional Testing with Selenium<a class="headerlink" href="#module-webtest.sel" title="Permalink to this headline">¶</a></h1>
+<p>Routines for testing WSGI applications with selenium.</p>
+<p>Most interesting is <a class="reference internal" href="#webtest.sel.SeleniumApp" title="webtest.sel.SeleniumApp"><tt class="xref py py-class docutils literal"><span class="pre">SeleniumApp</span></tt></a> and the
+<a class="reference internal" href="#webtest.sel.selenium" title="webtest.sel.selenium"><tt class="xref py py-func docutils literal"><span class="pre">selenium()</span></tt></a> decorator</p>
+<div class="section" id="environment-variables">
+<h2>Environment variables<a class="headerlink" href="#environment-variables" title="Permalink to this headline">¶</a></h2>
+<p>Those value are used if found in environment:</p>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">SELENIUM_HOST</span></tt>: Default to <tt class="docutils literal"><span class="pre">127.0.0.1</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">SELENIUM_PORT</span></tt>: Default to <tt class="docutils literal"><span class="pre">4444</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">SELENIUM_BIND</span></tt>: IP used to bind extra servers (WSGI Server/File server).
+Default to <tt class="docutils literal"><span class="pre">127.0.0.1</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">SELENIUM_DRIVER</span></tt>: The driver used to start the browser. Usualy something
+in <tt class="docutils literal"><span class="pre">*chrome</span></tt>, <tt class="docutils literal"><span class="pre">*firefox</span></tt>, <tt class="docutils literal"><span class="pre">*googlechrome</span></tt>. Default to
+<tt class="docutils literal"><span class="pre">*googlechrome</span></tt>. You can get the full list by running:</p>
+<div class="highlight-python"><pre>$ java -jar selenium-server.jar -interactive
+cmd=getNewBrowserSession</pre>
+</div>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">SELENIUM_KEEP_OPEN</span></tt>: If exist then browser session are not closed so you
+can introspect the problem on failure.</p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">SELENIUM_JAR</span></tt>: If selenium is not running then this jar is used to run
+selenium.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="webtest.sel.SeleniumApp">
+<em class="property">class </em><tt class="descclassname">webtest.sel.</tt><tt class="descname">SeleniumApp</tt><big>(</big><em>app=None</em>, <em>url=None</em>, <em>timeout=30000</em>, <em>extra_environ=None</em>, <em>relative_to=None</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#webtest.sel.SeleniumApp" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="webtest.html#webtest.TestApp" title="webtest.TestApp"><tt class="xref py py-class docutils literal"><span class="pre">webtest.TestApp</span></tt></a></p>
+<p>SeleniumApp only support <tt class="docutils literal"><span class="pre">GET</span></tt> requests</p>
+<dl class="attribute">
+<dt id="webtest.sel.SeleniumApp.browser">
+<tt class="descname">browser</tt><a class="headerlink" href="#webtest.sel.SeleniumApp.browser" title="Permalink to this definition">¶</a></dt>
+<dd><p>The current <a class="reference internal" href="#webtest.sel.Selenium" title="webtest.sel.Selenium"><tt class="xref py py-class docutils literal"><span class="pre">Selenium</span></tt></a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.SeleniumApp.close">
+<tt class="descname">close</tt><big>(</big><big>)</big><a class="headerlink" href="#webtest.sel.SeleniumApp.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close selenium and the WSGI server if needed</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.sel.Selenium">
+<em class="property">class </em><tt class="descclassname">webtest.sel.</tt><tt class="descname">Selenium</tt><a class="headerlink" href="#webtest.sel.Selenium" title="Permalink to this definition">¶</a></dt>
+<dd><p>Selenium RC control aka <tt class="docutils literal"><span class="pre">browser</span></tt></p>
+<p>A object use to manipulate DOM nodes. This object allow to use the
+underlying selenium api. See Selenium <a class="reference external" href="http://goo.gl/IecEk">api</a></p>
+<p>You can use the original method name:</p>
+<div class="highlight-python"><pre>browser.fireEvent('id=#myid", 'focus')</pre>
+</div>
+<p>Or a more pythonic name:</p>
+<div class="highlight-python"><pre>browser.fire_event('id=#myid", 'focus')</pre>
+</div>
+<p>Both are equal to:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">browser</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&#39;fireEvent&#39;</span><span class="p">,</span> <span class="s">&#39;id=#myid&#39;</span><span class="p">,</span> <span class="s">&#39;focus&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="webtest.sel.selenium">
+<tt class="descclassname">webtest.sel.</tt><tt class="descname">selenium</tt><big>(</big><em>obj</em><big>)</big><a class="headerlink" href="#webtest.sel.selenium" title="Permalink to this definition">¶</a></dt>
+<dd><p>A callable usable as:</p>
+<ul class="simple">
+<li>class decorator</li>
+<li>function decorator</li>
+<li>contextmanager</li>
+</ul>
+</dd></dl>
+
+<div class="section" id="return-values">
+<h3>Return Values<a class="headerlink" href="#return-values" title="Permalink to this headline">¶</a></h3>
+<p>Some of the return values return instances of these classes:</p>
+<dl class="class">
+<dt id="webtest.sel.TestResponse">
+<em class="property">class </em><tt class="descclassname">webtest.sel.</tt><tt class="descname">TestResponse</tt><big>(</big><em>body=None</em>, <em>status=None</em>, <em>headerlist=None</em>, <em>app_iter=None</em>, <em>request=None</em>, <em>content_type=None</em>, <em>conditional_response=None</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#webtest.sel.TestResponse" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="webtest.sel.TestResponse.doc">
+<tt class="descname">doc</tt><a class="headerlink" href="#webtest.sel.TestResponse.doc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expose a <tt class="xref py py-class docutils literal"><span class="pre">Document</span></tt></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.TestResponse.follow">
+<tt class="descname">follow</tt><big>(</big><em>status=None</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#webtest.sel.TestResponse.follow" title="Permalink to this definition">¶</a></dt>
+<dd><p>If this request is a redirect, follow that redirect.  It
+is an error if this is not a redirect response.  Returns
+another response object.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.sel.Document">
+<em class="property">class </em><tt class="descclassname">webtest.sel.</tt><tt class="descname">Document</tt><big>(</big><em>resp</em><big>)</big><a class="headerlink" href="#webtest.sel.Document" title="Permalink to this definition">¶</a></dt>
+<dd><p>The browser document. <tt class="docutils literal"><span class="pre">resp.doc.myid</span></tt> is egual to
+<tt class="docutils literal"><span class="pre">resp.doc.css('#myid')</span></tt></p>
+<dl class="method">
+<dt id="webtest.sel.Document.button">
+<tt class="descname">button</tt><big>(</big><em>description=None</em>, <em>buttonid=None</em>, <em>index=None</em><big>)</big><a class="headerlink" href="#webtest.sel.Document.button" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a button</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Document.css">
+<tt class="descname">css</tt><big>(</big><em>selector</em><big>)</big><a class="headerlink" href="#webtest.sel.Document.css" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get an <tt class="xref py py-class docutils literal"><span class="pre">Element</span></tt> using a css selector</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Document.get">
+<tt class="descname">get</tt><big>(</big><em>tag</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#webtest.sel.Document.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an element matching <tt class="docutils literal"><span class="pre">tag</span></tt>, an <tt class="docutils literal"><span class="pre">attribute</span></tt> and an
+<tt class="docutils literal"><span class="pre">index</span></tt>.  For example:</p>
+<div class="highlight-python"><pre>resp.doc.get('input', name='go') =&gt; xpath=//input[@name="go"]
+resp.doc.get('li', description='Item') =&gt; xpath=//li[.="Item"]</pre>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Document.input">
+<tt class="descname">input</tt><big>(</big><em>value=None</em>, <em>name=None</em>, <em>inputid=None</em>, <em>index=None</em><big>)</big><a class="headerlink" href="#webtest.sel.Document.input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get an input field</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Document.link">
+<tt class="descname">link</tt><big>(</big><em>description=None</em>, <em>linkid=None</em>, <em>href=None</em>, <em>index=None</em><big>)</big><a class="headerlink" href="#webtest.sel.Document.link" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a link</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Document.xpath">
+<tt class="descname">xpath</tt><big>(</big><em>path</em><big>)</big><a class="headerlink" href="#webtest.sel.Document.xpath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get an <tt class="xref py py-class docutils literal"><span class="pre">Element</span></tt> using xpath</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.sel.Element">
+<em class="property">class </em><tt class="descclassname">webtest.sel.</tt><tt class="descname">Element</tt><big>(</big><em>resp</em>, <em>locator</em><big>)</big><a class="headerlink" href="#webtest.sel.Element" title="Permalink to this definition">¶</a></dt>
+<dd><p>A object use to manipulate DOM nodes. This object allow to use the
+underlying selenium api for the specified locator. See Selenium <a class="reference external" href="http://goo.gl/IecEk">api</a></p>
+<p>You can use the original method name:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">element</span><span class="o">.</span><span class="n">fireEvent</span><span class="p">(</span><span class="s">&#39;focus&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Or a more pythonic name:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">element</span><span class="o">.</span><span class="n">fire_event</span><span class="p">(</span><span class="s">&#39;focus&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Both are equal to:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">browser</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&#39;fireEvent&#39;</span><span class="p">,</span> <span class="n">element</span><span class="o">.</span><span class="n">locator</span><span class="p">,</span> <span class="s">&#39;focus&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="webtest.sel.Element.attr">
+<tt class="descname">attr</tt><big>(</big><em>attr</em><big>)</big><a class="headerlink" href="#webtest.sel.Element.attr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the attribute value of the element</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Element.drag_and_drop">
+<tt class="descname">drag_and_drop</tt><big>(</big><em>element</em><big>)</big><a class="headerlink" href="#webtest.sel.Element.drag_and_drop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Drag and drop to element</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Element.eval">
+<tt class="descname">eval</tt><big>(</big><em>*expr</em><big>)</big><a class="headerlink" href="#webtest.sel.Element.eval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Eval a javascript expression in Selenium RC. You can use the
+following variables:</p>
+<ul class="simple">
+<li>s: the <tt class="docutils literal"><span class="pre">selenium</span></tt> object</li>
+<li>b: the <tt class="docutils literal"><span class="pre">browserbot</span></tt> object</li>
+<li>l: the element locator string</li>
+<li>e: the element itself</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Element.exist">
+<tt class="descname">exist</tt><big>(</big><big>)</big><a class="headerlink" href="#webtest.sel.Element.exist" title="Permalink to this definition">¶</a></dt>
+<dd><p>return true is the element is present</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Element.hasClass">
+<tt class="descname">hasClass</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#webtest.sel.Element.hasClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>True iif the class is present</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Element.html">
+<tt class="descname">html</tt><big>(</big><big>)</big><a class="headerlink" href="#webtest.sel.Element.html" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the innerHTML of the element</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Element.text">
+<tt class="descname">text</tt><big>(</big><big>)</big><a class="headerlink" href="#webtest.sel.Element.text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the text of the element</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Element.wait">
+<tt class="descname">wait</tt><big>(</big><em>timeout=3000</em><big>)</big><a class="headerlink" href="#webtest.sel.Element.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for an element and return this element</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="webtest.sel.Element.wait_and_click">
+<tt class="descname">wait_and_click</tt><big>(</big><em>timeout=3000</em><big>)</big><a class="headerlink" href="#webtest.sel.Element.wait_and_click" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for an element, click on it and return this element</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="webtest.sel.Form">
+<em class="property">class </em><tt class="descclassname">webtest.sel.</tt><tt class="descname">Form</tt><big>(</big><em>resp</em>, <em>id</em><big>)</big><a class="headerlink" href="#webtest.sel.Form" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="webtest.html#webtest.Form" title="webtest.Form"><tt class="xref py py-class docutils literal"><span class="pre">Form</span></tt></a></p>
+<dl class="method">
+<dt id="webtest.sel.Form.submit">
+<tt class="descname">submit</tt><big>(</big><em>name=None</em>, <em>index=None</em>, <em>extra_environ=None</em>, <em>timeout=None</em><big>)</big><a class="headerlink" href="#webtest.sel.Form.submit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Submits the form.  If <tt class="docutils literal"><span class="pre">name</span></tt> is given, then also select that
+button (using <tt class="docutils literal"><span class="pre">index</span></tt> to disambiguate)``.</p>
+<p>Returns a <tt class="xref py py-class docutils literal"><span class="pre">webtest.browser.TestResponse</span></tt> object.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="testing-a-wsgi-application">
+<h3>Testing a wsgi application<a class="headerlink" href="#testing-a-wsgi-application" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">TestApp</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">webtest</span><span class="o">.</span><span class="n">TestApp</span><span class="p">(</span><span class="n">application</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test_webtest</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s">&#39;redirect&#39;</span><span class="p">:</span> <span class="s">&#39;/message.html?message=submited&#39;</span><span class="p">})</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">mustcontain</span><span class="p">(</span><span class="s">&#39;It Works!&#39;</span><span class="p">)</span>
+        <span class="n">form</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">forms</span><span class="p">[</span><span class="s">&#39;myform&#39;</span><span class="p">]</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">lint</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">form</span><span class="p">[</span><span class="s">&#39;mytext&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">mustcontain</span><span class="p">(</span><span class="n">no</span><span class="o">=</span><span class="s">&#39;Form submited&#39;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">webtest</span><span class="o">.</span><span class="n">selenium</span><span class="p">(</span><span class="n">resp</span><span class="p">)</span> <span class="k">as</span> <span class="n">sresp</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">sresp</span><span class="p">:</span>
+                <span class="n">sform</span> <span class="o">=</span> <span class="n">sresp</span><span class="o">.</span><span class="n">forms</span><span class="p">[</span><span class="s">&#39;myform&#39;</span><span class="p">]</span>
+                <span class="n">sform</span><span class="p">[</span><span class="s">&#39;mytext&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;foo&#39;</span>
+                <span class="n">sresp</span> <span class="o">=</span> <span class="n">sform</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;go&#39;</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">sresp</span><span class="o">.</span><span class="n">mustcontain</span><span class="p">(</span><span class="s">&#39;Form submited&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">updated</span><span class="p">:</span>
+            <span class="n">resp</span><span class="o">.</span><span class="n">mustcontain</span><span class="p">(</span><span class="s">&#39;Form submited&#39;</span><span class="p">)</span>
+            <span class="n">form</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">forms</span><span class="p">[</span><span class="s">&#39;myform&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">form</span><span class="p">[</span><span class="s">&#39;mytext&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s">&#39;foo&#39;</span><span class="p">)</span>
+
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;go&#39;</span><span class="p">)</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">follow</span><span class="p">()</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">mustcontain</span><span class="p">(</span><span class="s">&#39;&lt;pre&gt;submited&lt;/pre&gt;&#39;</span><span class="p">)</span>
+
+    <span class="nd">@webtest.selenium</span>
+    <span class="k">def</span> <span class="nf">test_selenium</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s">&#39;redirect&#39;</span><span class="p">:</span> <span class="s">&#39;/message.html?message=submited&#39;</span><span class="p">})</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">mustcontain</span><span class="p">(</span><span class="s">&#39;It Works!&#39;</span><span class="p">)</span>
+        <span class="n">form</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">forms</span><span class="p">[</span><span class="s">&#39;myform&#39;</span><span class="p">]</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">lint</span><span class="p">()</span>
+
+        <span class="n">form</span><span class="p">[</span><span class="s">&#39;mytext&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;foo&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">form</span><span class="p">[</span><span class="s">&#39;mytext&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s">&#39;foo&#39;</span><span class="p">)</span>
+
+        <span class="c"># file upload are only supported with *firefox *chrome drivers</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="s">&#39;html&#39;</span><span class="p">,</span> <span class="s">&#39;index.html&#39;</span><span class="p">)</span>
+        <span class="nb">file</span> <span class="o">=</span> <span class="n">form</span><span class="p">[</span><span class="s">&#39;myfile&#39;</span><span class="p">]</span>
+        <span class="nb">file</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="n">filename</span><span class="p">,)</span>
+
+        <span class="n">form</span><span class="p">[</span><span class="s">&#39;myradio&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;true&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">form</span><span class="p">[</span><span class="s">&#39;myradio&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s">&#39;true&#39;</span><span class="p">)</span>
+        <span class="n">check</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;mycheckbox&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">check</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="s">&#39;true&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">check</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s">&#39;true&#39;</span><span class="p">)</span>
+        <span class="n">form</span><span class="p">[</span><span class="s">&#39;myselect&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;value2&#39;</span>
+        <span class="n">form</span><span class="p">[</span><span class="s">&#39;myselect&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;value2&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">form</span><span class="p">[</span><span class="s">&#39;myselect&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s">&#39;value2&#39;</span><span class="p">)</span>
+        <span class="n">form</span><span class="p">[</span><span class="s">&#39;mymultiselect&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;value1&#39;</span><span class="p">,</span> <span class="s">&#39;value3&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">form</span><span class="p">[</span><span class="s">&#39;mymultiselect&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;value1&#39;</span><span class="p">,</span> <span class="s">&#39;value3&#39;</span><span class="p">])</span>
+
+        <span class="c"># there is an ajax hook on the page</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;go&#39;</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">mustcontain</span><span class="p">(</span><span class="s">&#39;Form submited&#39;</span><span class="p">)</span>
+
+        <span class="c"># but we can submit the form to get the non-javascript behavior</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">follow</span><span class="p">()</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">mustcontain</span><span class="p">(</span><span class="s">&#39;&lt;pre&gt;submited&lt;/pre&gt;&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="testing-the-jquery-ui-website">
+<h3>Testing the jquery.ui website<a class="headerlink" href="#testing-the-jquery-ui-website" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">TestJQueryUI</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setupClass</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="n">cls</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">webtest</span><span class="o">.</span><span class="n">SeleniumApp</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s">&#39;http://jqueryui.com/&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;http://jqueryui.com/demos/&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test_autocomplete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resp</span><span class="o">.</span><span class="n">click</span><span class="p">(</span><span class="s">&#39;Autocomplete&#39;</span><span class="p">)</span>
+        <span class="n">field</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">xpath</span><span class="p">(</span><span class="s">&#39;//input[@id=&quot;tags&quot;]&#39;</span><span class="p">)</span>
+        <span class="n">field</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="s">&#39;a&#39;</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">xpath</span><span class="p">(</span><span class="s">&#39;//ul[@role=&quot;listbox&quot;]//a[.=&quot;AppleScript&quot;]&#39;</span><span class="p">)</span>
+        <span class="n">item</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span><span class="o">.</span><span class="n">fireEvent</span><span class="p">(</span><span class="s">&#39;mouseover&#39;</span><span class="p">)</span>
+        <span class="n">field</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s">&#39;#ui-active-menuitem&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">html</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s">&quot;AppleScript&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test_datepicker</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resp</span><span class="o">.</span><span class="n">click</span><span class="p">(</span><span class="s">&#39;Datepicker&#39;</span><span class="p">)</span>
+        <span class="n">field</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">datepicker</span>
+        <span class="n">field</span><span class="o">.</span><span class="n">fireEvent</span><span class="p">(</span><span class="s">&#39;focus&#39;</span><span class="p">)</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="s">&#39;16&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">wait_and_click</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="s">&#39;/16/&#39;</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test_dialog</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resp</span><span class="o">.</span><span class="n">click</span><span class="p">(</span><span class="s">&#39;Dialog&#39;</span><span class="p">)</span>
+        <span class="n">close</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">xpath</span><span class="p">(</span><span class="s">&#39;//div[@role=&quot;dialog&quot;]//span[.=&quot;close&quot;]&#39;</span><span class="p">)</span>
+        <span class="n">close</span><span class="o">.</span><span class="n">wait_and_click</span><span class="p">()</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="s">&#39;Modal form&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">button</span><span class="p">(</span><span class="s">&#39;Create new user&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+        <span class="n">form</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">form</span>
+        <span class="n">form</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="s">&#39;Gael&#39;</span>
+        <span class="n">form</span><span class="p">[</span><span class="s">&#39;email&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;gael@gawel.org&#39;</span>
+        <span class="n">create</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">button</span><span class="p">(</span><span class="s">&#39;Create an account&#39;</span><span class="p">)</span>
+        <span class="n">create</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+        <span class="n">pwd</span> <span class="o">=</span> <span class="n">form</span><span class="p">[</span><span class="s">&#39;password&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">pwd</span><span class="o">.</span><span class="n">hasClass</span><span class="p">(</span><span class="s">&#39;ui-state-error&#39;</span><span class="p">))</span>
+        <span class="n">pwd</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="s">&#39;pwd&#39;</span>
+        <span class="n">create</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">mustcontain</span><span class="p">(</span><span class="s">&#39;Length of password must be between 5 and 16.&#39;</span><span class="p">)</span>
+        <span class="n">pwd</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="s">&#39;passwd&#39;</span>
+        <span class="n">create</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">mustcontain</span><span class="p">(</span><span class="s">&#39;&lt;td&gt;Gael&lt;/td&gt;&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test_dropable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resp</span><span class="o">.</span><span class="n">click</span><span class="p">(</span><span class="s">&#39;Droppable&#39;</span><span class="p">)</span>
+        <span class="n">draggable</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">draggable</span>
+        <span class="n">droppable</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">droppable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">droppable</span><span class="o">.</span><span class="n">hasClass</span><span class="p">(</span><span class="s">&#39;ui-state-highlight&#39;</span><span class="p">))</span>
+        <span class="n">draggable</span><span class="o">.</span><span class="n">drag_and_drop</span><span class="p">(</span><span class="n">droppable</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">droppable</span><span class="o">.</span><span class="n">hasClass</span><span class="p">(</span><span class="s">&#39;ui-state-highlight&#39;</span><span class="p">))</span>
+
+        <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="s">&#39;Shopping Cart&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+        <span class="n">cart</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s">&#39;#cart ol.ui-droppable&#39;</span><span class="p">)</span>
+        <span class="n">cart</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">xpath</span><span class="p">(</span><span class="s">&#39;//li[.=&quot;Lolcat Shirt&quot;]&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertNotIn</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">cart</span><span class="p">)</span>
+        <span class="n">item</span><span class="o">.</span><span class="n">drag_and_drop</span><span class="p">(</span><span class="n">cart</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">cart</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">teardownClass</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="n">cls</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#"><tt class="docutils literal"><span class="pre">webtest.sel</span></tt> &#8211; Functional Testing with Selenium</a><ul>
+<li><a class="reference internal" href="#environment-variables">Environment variables</a></li>
+<li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li><a class="reference internal" href="#return-values">Return Values</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#examples">Examples</a><ul>
+<li><a class="reference internal" href="#testing-a-wsgi-application">Testing a wsgi application</a></li>
+<li><a class="reference internal" href="#testing-the-jquery-ui-website">Testing the jquery.ui website</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="webtest.html"
+                        title="previous chapter"><tt class="docutils literal docutils literal"><span class="pre">webtest</span></tt> &#8211; Functional Testing of Web Applications</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/modules/sel.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="webtest.html" title="webtest – Functional Testing of Web Applications"
+             >previous</a> |</li>
+        <li><a href="../index.html">WebTest v1.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008, Ian Bicking.
+      Last updated on Aug 28, 2011.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>

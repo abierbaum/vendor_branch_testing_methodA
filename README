@@ -1,12 +1,45 @@
 Testing of a method for vendor branch tracking.
 
-
 Method used:
 
-  * Created a 'vendor' branch off base of repository
-     * note: may be able to do with no parent
+  * Created a 'vendor' branch off base of repository with no parent
+
+git symbolic-ref HEAD refs/heads/newbranch 
+rm .git/index 
+git clean -fdx 
+<do work> 
+git add your files 
+git commit -m 'Initial commit'
+
   * Create the structure we want for all deps in that branch
+  * Keep copies of all vendor drops in that branch in the directory structure we want
   * Merge 'vendor' into 'dev' to get all changes
+
+  git checkout vendor
+  git pull
+  git checkout dev
+  git merge --no-ff -m "Merge in of package x.y.z from vendor" vendor
+  git push                    # To upload to server
+
   * As updates happen:
      * Go into vendor
      
+git checkout vendor
+cd deps
+
+# First time
+unzip package.x.y.z.zip
+mv package.x.y.z package
+git add package
+git commit -a -m "Import of Package X.Y.Z"
+git push origin vendor
+
+# Second time
+rm -rf package
+unzip package.x.y.z.zip
+mv package.x.y.z package
+# Make sure files are in place
+git commit -a -m "Import of Package X.Y.Z"
+git push origin vendor
+
+

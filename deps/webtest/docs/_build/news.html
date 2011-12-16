@@ -1,0 +1,265 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>News &mdash; WebTest v1.2 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="WebTest v1.2 documentation" href="index.html" />
+    <link rel="next" title="License" href="license.html" />
+    <link rel="prev" title="Testing Applications with WebTest" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Testing Applications with WebTest"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">WebTest v1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="news">
+<h1>News<a class="headerlink" href="#news" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id1">
+<h2>1.2.4<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Accept lists for <tt class="docutils literal"><span class="pre">app.post(url,</span> <span class="pre">params=[...])</span></tt></li>
+<li>Allow to use url that starts with the SCRIPT_NAME found in extra_environ</li>
+<li>Fix <a class="reference external" href="https://bitbucket.org/ianb/webtest/issue/16">#16</a>  Default
+content-type is now correctly set to <cite>application/octet-stream</cite></li>
+<li>Fix <a class="reference external" href="https://bitbucket.org/ianb/webtest/issue/18">#14 and #18</a> Allow to use
+<cite>.delete(params={})</cite></li>
+<li>Fix <a class="reference external" href="https://bitbucket.org/ianb/webtest/issue/12">#12</a></li>
+</ul>
+</div>
+<div class="section" id="id4">
+<h2>1.2.3<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Fix <a class="reference external" href="http://bitbucket.org/ianb/webtest/issue/10/testapprequest-method-overwrites-specifics-with-testapp-scoped">#10</a>,
+now <cite>TestApp.extra_environ</cite> doesn&#8217;t take precedence over a WSGI
+environment passed in through the request.</li>
+<li>Removed stray print</li>
+</ul>
+</div>
+<div class="section" id="id6">
+<h2>1.2.2<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Revert change to cookies that would add <tt class="docutils literal"><span class="pre">&quot;</span></tt> around cookie values.</li>
+<li>Added property <tt class="xref py py-meth docutils literal"><span class="pre">webtest.Response.pyquery()</span></tt> which returns a
+<a class="reference external" href="http://pyquery.org/">PyQuery</a> object.</li>
+<li>Set base_url on <tt class="docutils literal"><span class="pre">resp.lxml</span></tt></li>
+<li>Include tests and docs in tarball.</li>
+<li>Fix sending in webob.Request (or webtest.TestRequest) objects.</li>
+<li>Fix handling forms with file uploads, when no file is selected.</li>
+<li>Added <tt class="docutils literal"><span class="pre">extra_environ</span></tt> argument to <a class="reference internal" href="modules/webtest.html#webtest.TestResponse.click" title="webtest.TestResponse.click"><tt class="xref py py-meth docutils literal"><span class="pre">webtest.TestResponse.click()</span></tt></a>.</li>
+<li>Fixed/added wildcard statuses, like <tt class="docutils literal"><span class="pre">status=&quot;4*&quot;</span></tt></li>
+<li>Fix file upload fields in forms: allow upload field to be empty.</li>
+<li>Added support for single-quoted html attributes.</li>
+<li><cite>TestResponse</cite> now has unicode support. It is turned on by default
+for all responses with charset information. <strong>This is backward
+incompatible change</strong> if you rely (e.g. in doctests) on parsed
+form fields or responses returned by <cite>json</cite> and <cite>lxml</cite> methods
+being encoded strings when charset header is in response. In order
+to switch to old behaviour pass <cite>use_unicode=False</cite> flag to
+<cite>TestApp</cite> constructor.</li>
+</ul>
+</div>
+<div class="section" id="id7">
+<h2>1.2.1<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Added method <tt class="xref py py-meth docutils literal"><span class="pre">TestApp.request()</span></tt>, which can be used for
+sending requests with different methods (e.g., <tt class="docutils literal"><span class="pre">MKCOL</span></tt>).  This
+method sends all its keyword arguments to
+<tt class="xref py py-meth docutils literal"><span class="pre">webtest.TestRequest.blank()</span></tt> and then executes the request.
+The parameters are somewhat different than other methods (like
+<a class="reference internal" href="modules/webtest.html#webtest.TestApp.get" title="webtest.TestApp.get"><tt class="xref py py-meth docutils literal"><span class="pre">webtest.TestApp.get()</span></tt></a>), as they match WebOb&#8217;s attribute
+names exactly (the other methods were written before WebOb existed).</li>
+<li>Removed the copying of stdout to stderr during requests.</li>
+<li>Fix file upload fields in forms (<a class="reference external" href="http://trac.pythonpaste.org/pythonpaste/ticket/340">#340</a>) &#8211; you could
+upload files with <a class="reference internal" href="modules/webtest.html#webtest.TestApp.post" title="webtest.TestApp.post"><tt class="xref py py-meth docutils literal"><span class="pre">webtest.TestApp.post()</span></tt></a>, but if you use
+<tt class="docutils literal"><span class="pre">resp.form</span></tt> file upload fields would not work (from rcs-comp.com
+and Matthew Desmarais).</li>
+</ul>
+</div>
+<div class="section" id="id9">
+<h2>1.2<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Fix form inputs; text inputs always default to the empty string, and
+unselected radio inputs default to nothing at all.  From Daniele
+Paolella.</li>
+<li>Fix following links with fragments (these fragments should not be
+sent to the WSGI application).  From desmaj.</li>
+<li>Added <tt class="docutils literal"><span class="pre">force_value</span></tt> to select fields, like
+<tt class="docutils literal"><span class="pre">res.form['select'].force_value(&quot;new_value&quot;)</span></tt>.  This makes it
+possible to simulate forms that are dynamically updated.  From
+Matthew Desmarais.</li>
+<li>Fixed <tt class="xref py py-meth docutils literal"><span class="pre">webtest.Response.mustcontain()</span></tt> when you pass in a
+<tt class="docutils literal"><span class="pre">no=[strings]</span></tt> argument.</li>
+</ul>
+</div>
+<div class="section" id="id10">
+<h2>1.1<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Changed the <tt class="docutils literal"><span class="pre">__str__</span></tt> of responses to make them more doctest
+friendly:<ul>
+<li>All headers are displayed capitalized, like Content-Type</li>
+<li>Headers are sorted alphabetically</li>
+</ul>
+</li>
+<li>Changed <tt class="docutils literal"><span class="pre">__repr__</span></tt> to only show the body length if the complete
+body is not shown (for short bodies the complete body is in the
+repr)</li>
+<li>Note: <strong>these are backward incompatible changes</strong> if you are using
+doctest (you&#8217;ll have to update your doctests with the new format).</li>
+<li>Fixed exception in the <tt class="docutils literal"><span class="pre">.delete</span></tt> method.</li>
+<li>Added a <tt class="docutils literal"><span class="pre">content_type</span></tt> argument to <tt class="docutils literal"><span class="pre">app.post</span></tt> and <tt class="docutils literal"><span class="pre">app.put</span></tt>,
+which sets the <tt class="docutils literal"><span class="pre">Content-Type</span></tt> of the request.  This is more
+convenient when testing REST APIs.</li>
+<li>Skip links in <tt class="docutils literal"><span class="pre">&lt;script&gt;...&lt;/script&gt;</span></tt> tags (since that&#8217;s not real
+markup).</li>
+</ul>
+</div>
+<div class="section" id="id11">
+<h2>1.0.2<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Don&#8217;t submit unnamed form fields.</li>
+<li>Checkboxes with no explicit <tt class="docutils literal"><span class="pre">value</span></tt> send <tt class="docutils literal"><span class="pre">on</span></tt> (previously they
+sent <tt class="docutils literal"><span class="pre">checked</span></tt>, which isn&#8217;t what browsers send).</li>
+<li>Support for <tt class="docutils literal"><span class="pre">&lt;select</span> <span class="pre">multiple&gt;</span></tt> fields (from Matthew Desmarais)</li>
+</ul>
+<p>1.0.1
+&#8212;</p>
+<ul class="simple">
+<li>Fix the <tt class="docutils literal"><span class="pre">TestApp</span></tt> validator&#8217;s InputWrapper lacking support for
+readline with an argument as needed by the cgi module.</li>
+</ul>
+</div>
+<div class="section" id="id12">
+<h2>1.0<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Keep URLs in-tact in cases such as
+<tt class="docutils literal"><span class="pre">app.get('http://www.python.org')</span></tt> (so HTTP_HOST=www.python.org,
+etc).</li>
+<li>Fix <tt class="docutils literal"><span class="pre">lxml.html</span></tt> import, so lxml 2.0 users can get HTML lxml
+objects from <tt class="docutils literal"><span class="pre">resp.lxml</span></tt></li>
+<li>Treat <tt class="docutils literal"><span class="pre">&lt;input</span> <span class="pre">type=&quot;image&quot;&gt;</span></tt> like a submit button.</li>
+<li>Use <tt class="docutils literal"><span class="pre">BaseCookie</span></tt> instead of <tt class="docutils literal"><span class="pre">SimpleCookie</span></tt> for storing cookies
+(avoids quoting cookie values).</li>
+<li>Accept any <tt class="docutils literal"><span class="pre">params</span></tt> argument that has an <tt class="docutils literal"><span class="pre">items</span></tt> method (like
+MultiDict)</li>
+</ul>
+</div>
+<div class="section" id="id13">
+<h2>0.9<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h2>
+<p>Initial release</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">News</a><ul>
+<li><a class="reference internal" href="#id1">1.2.4</a></li>
+<li><a class="reference internal" href="#id4">1.2.3</a></li>
+<li><a class="reference internal" href="#id6">1.2.2</a></li>
+<li><a class="reference internal" href="#id7">1.2.1</a></li>
+<li><a class="reference internal" href="#id9">1.2</a></li>
+<li><a class="reference internal" href="#id10">1.1</a></li>
+<li><a class="reference internal" href="#id11">1.0.2</a></li>
+<li><a class="reference internal" href="#id12">1.0</a></li>
+<li><a class="reference internal" href="#id13">0.9</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Testing Applications with WebTest</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="license.html"
+                        title="next chapter">License</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/news.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Testing Applications with WebTest"
+             >previous</a> |</li>
+        <li><a href="index.html">WebTest v1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008, Ian Bicking.
+      Last updated on Aug 05, 2011.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>
