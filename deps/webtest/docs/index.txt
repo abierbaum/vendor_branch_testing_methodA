@@ -2,19 +2,18 @@ Testing Applications with WebTest
 +++++++++++++++++++++++++++++++++
 
 :author: Ian Bicking <ianb@colorstudy.com>
+:maintainer: Gael Pasgrimaud <gael@gawel.org>
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
    news
    license
    modules/webtest
+   modules/sel
 
 .. contents::
 
-.. comment:
-
-   >>> from dtopt import ELLIPSIS
 
 Status & License
 ================
@@ -77,29 +76,21 @@ run WSGI applications and verify the output.
 TestApp
 =======
 
-The most important object in WebTest is ``webtest.TestApp``, the
-wrapper for WSGI applications.  To use it, you simply instantiate it
-with your WSGI application.  (Note: if your WSGI application requires
-any configuration, you must set that up manually in your tests.)
+The most important object in WebTest is :class:`~webtest.TestApp`, the wrapper
+for WSGI applications.  To use it, you simply instantiate it with your WSGI
+application. (Note: if your WSGI application requires any configuration, you
+must set that up manually in your tests.)
 
 .. code-block:: python
 
     >>> from webtest import TestApp
-    >>> from webob import Request, Response
-    >>> from paste.urlmap import URLMap
-    >>> map_app = URLMap()
-    >>> form_html = map_app['/form.html'] = Response(content_type='text/html')
-    >>> form_html.body = '''<html><body>
-    ... <form action="/form-submit" method="POST">
-    ...   <input type="text" name="name">
-    ...   <input type="submit" name="submit" value="Submit!">
-    ... </form></body></html>'''
-    >>> app = TestApp(map_app)
+    >>> from webtest.debugapp import debug_app
+    >>> app = TestApp(debug_app)
     >>> res = app.get('/form.html')
     >>> res.status
     '200 OK'
     >>> res.form
-    <webtest.Form object at ...>
+    <Form />
 
 Making Requests
 ---------------
@@ -132,6 +123,8 @@ list of ``[(fieldname, filename, fild_content)]``.  File uploads use a
 different form submission data type to pass the structured data.
 
 For other verbs you can use:
+
+.. code-block:: python
 
     app.put(path, params, ...)
     app.delete(path, ...)
@@ -235,12 +228,14 @@ The added methods:
 ``response.forms``:
     Return a dictionary of forms; you can use both indexes (refer to
     the forms in order) or the string ids of forms (if you've given
-    them ids) to identify the form.  See `Form Submissions <#form-submissions>`_ for
+    them ids) to identify the form.  See :ref:`form-submissions` for
     more on the form objects.
 
 ``response.form``:
     If there is just a single form, this returns that.  It is an error
     if you use this and there are multiple forms.
+
+.. _form-submissions:
 
 Form Submissions
 ================
@@ -257,26 +252,18 @@ Then you fill it in fields:
 
 .. code-block:: python
 
-    >>> print form.action
+    >>> print(form.action)
     /form-submit
-    >>> print form.method
+    >>> print(form.method)
     POST
     >>> # dict of fields
-    >>> fields = form.fields.items(); fields.sort(); fields
-    [(u'name', [<webtest.Text object at ...>]), (u'submit', [<webtest.Submit object at ...>])]
+    >>> fields = list(form.fields.items()); fields.sort(); fields
+    [(u'name', [<Text name="name">]), (u'submit', [<Submit name="submit">])]
     >>> form['name'] = 'Bob'
     >>> # When names don't point to a single field:
     >>> form.set('name', 'Bob', index=0)
 
-Then you can submit.  First we'll put up a simple test app to catch
-the response:
-
-.. code-block:: python
-
-    >>> from webtest.debugapp import debug_app
-    >>> map_app['/form-submit'] = debug_app
-
-Then submit:
+Then you can submit:
 
 .. code-block:: python
 
@@ -284,7 +271,7 @@ Then submit:
     >>> res = form.submit()
     >>> # Or submit a button:
     >>> res = form.submit('submit')
-    >>> print res
+    >>> print(res)
     Response: 200 OK
     Content-Type: text/plain
     ...
@@ -334,7 +321,7 @@ Examples:
 
     >>> from webtest import TestRequest
     >>> from webtest import TestResponse
-    >>> res = TestResponse(content_type='text/html', body='''
+    >>> res = TestResponse(content_type='text/html', body=b'''
     ... <html><body><div id="content">hey!</div></body>''')
     >>> res.request = TestRequest.blank('/')
     >>> res.html
@@ -349,15 +336,15 @@ Examples:
     >>> res.lxml.xpath('//body/div')[0].text
     'hey!'
     >>> res = TestResponse(content_type='application/json',
-    ...                    body='{"a":1,"b":2}')
+    ...                    body=b'{"a":1,"b":2}')
     >>> res.request = TestRequest.blank('/')
-    >>> res.json
-    {u'a': 1, u'b': 2}
+    >>> res.json.values()
+    [1, 2]
     >>> res = TestResponse(content_type='application/xml',
-    ...                    body='<xml><message>hey!</message></xml>')
+    ...                    body=b'<xml><message>hey!</message></xml>')
     >>> res.request = TestRequest.blank('/')
     >>> res.xml
-    <Element xml at ...>
+    <Element ...>
     >>> res.xml[0].tag
     'message'
     >>> res.xml[0].text

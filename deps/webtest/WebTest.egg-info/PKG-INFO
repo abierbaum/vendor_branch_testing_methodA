@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: WebTest
-Version: 1.2.4
+Version: 1.3.1
 Summary: Helper to test WSGI applications
 Home-page: http://webtest.pythonpaste.org/
 Author: Gael Pasgrimaud
@@ -16,9 +16,12 @@ Description: This wraps any WSGI application and makes it easy to send test
         
 Keywords: wsgi test unit tests web
 Platform: UNKNOWN
-Classifier: Development Status :: 4 - Beta
+Classifier: Development Status :: 5 - Production/Stable
 Classifier: Framework :: Paste
 Classifier: Intended Audience :: Developers
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Topic :: Internet :: WWW/HTTP :: WSGI
 Classifier: Topic :: Internet :: WWW/HTTP :: WSGI :: Server
+Classifier: Programming Language :: Python :: 2.5
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7

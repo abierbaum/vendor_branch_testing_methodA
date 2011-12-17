@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 from webob import Request
 import webtest
+from webtest.compat import binary_type
+from webtest.compat import to_bytes
+from tests.compat import unittest
+from tests.compat import u
 
 def select_app(environ, start_response):
     req = Request(environ)
     status = "200 OK"
     if req.method == "GET":
-        body =\
+        body = to_bytes(
 """
 <html>
     <head><title>form page</title></head>
@@ -31,14 +35,14 @@ def select_app(environ, start_response):
         </form>
     </body>
 </html>
-"""
+""")
     else:
         select_type = req.POST.get("button")
         if select_type == "single":
             selection = req.POST.get("single")
         elif select_type == "multiple":
             selection = ", ".join(req.POST.getall("multiple"))
-        body =\
+        body = to_bytes(
 """
 <html>
     <head><title>display page</title></head>
@@ -47,19 +51,19 @@ def select_app(environ, start_response):
         <p>You selected %(selection)s</p>
     </body>
 </html>
-""" % locals()
+""" % locals())
 
     headers = [
         ('Content-Type', 'text/html; charset=utf-8'),
         ('Content-Length', str(len(body)))]
     start_response(status, headers)
-    return [body.encode('utf8')]
+    return [body]
 
 def select_app_without_default(environ, start_response):
     req = Request(environ)
     status = "200 OK"
     if req.method == "GET":
-        body =\
+        body = to_bytes(
 """
 <html>
     <head><title>form page</title></head>
@@ -84,14 +88,14 @@ def select_app_without_default(environ, start_response):
         </form>
     </body>
 </html>
-"""
+""")
     else:
         select_type = req.POST.get("button")
         if select_type == "single":
             selection = req.POST.get("single")
         elif select_type == "multiple":
             selection = ", ".join(req.POST.getall("multiple"))
-        body =\
+        body = to_bytes(
 """
 <html>
     <head><title>display page</title></head>
@@ -100,13 +104,13 @@ def select_app_without_default(environ, start_response):
         <p>You selected %(selection)s</p>
     </body>
 </html>
-""" % locals()
+""" % locals())
 
     headers = [
         ('Content-Type', 'text/html; charset=utf-8'),
         ('Content-Length', str(len(body)))]
     start_response(status, headers)
-    return [body.encode('utf8')]
+    return [body]
 
 
 def select_app_unicode(environ, start_response):
@@ -114,7 +118,7 @@ def select_app_unicode(environ, start_response):
     status = "200 OK"
     if req.method == "GET":
         body =\
-u"""
+u("""
 <html>
     <head><title>form page</title></head>
     <body>
@@ -138,7 +142,7 @@ u"""
         </form>
     </body>
 </html>
-""".encode('utf8')
+""").encode('utf8')
     else:
         select_type = req.POST.get("button")
         if select_type == "single":
@@ -146,7 +150,7 @@ u"""
         elif select_type == "multiple":
             selection = ", ".join(req.POST.getall("multiple"))
         body = (
-u"""
+u("""
 <html>
     <head><title>display page</title></head>
     <body>
@@ -154,173 +158,174 @@ u"""
         <p>You selected %(selection)s</p>
     </body>
 </html>
-""" % locals()).encode('utf8')
+""") % locals()).encode('utf8')
     headers = [
         ('Content-Type', 'text/html; charset=utf-8'),
         ('Content-Length', str(len(body)))]
     start_response(status, headers)
-    assert isinstance(body, str)
+    if not isinstance(body, binary_type):
+        raise AssertionError('Body is not %s' % binary_type)
     return [body]
 
+class TestSelect(unittest.TestCase):
+
+    def test_unicode_select(self):
+        app = webtest.TestApp(select_app_unicode)
+        res = app.get('/')
+        single_form = res.forms["single_select_form"]
+        self.assertEqual(single_form["single"].value, u("МСК"))
+
+        display = single_form.submit("button")
+        self.assertIn(u("<p>You selected МСК</p>"), display, display)
+
+        res = app.get('/')
+        single_form = res.forms["single_select_form"]
+        self.assertEqual(single_form["single"].value, u("МСК"))
+        single_form.set("single", u("СПБ"))
+        self.assertEqual(single_form["single"].value, u("СПБ"))
+        display = single_form.submit("button")
+        self.assertIn(u("<p>You selected СПБ</p>"), display, display)
 
 
-def test_unicode_select():
-    app = webtest.TestApp(select_app_unicode)
-    res = app.get('/')
-    single_form = res.forms["single_select_form"]
-    assert single_form["single"].value == u"МСК"
 
-    display = single_form.submit("button")
-    assert u"<p>You selected МСК</p>" in display, display
+    def test_single_select(self):
+        app = webtest.TestApp(select_app)
+        res = app.get('/')
+        self.assertEqual(res.status_int, 200)
+        self.assertEqual(res.headers['content-type'], 'text/html; charset=utf-8')
+        self.assertEqual(res.content_type, 'text/html')
 
-    res = app.get('/')
-    single_form = res.forms["single_select_form"]
-    assert single_form["single"].value == u"МСК"
-    single_form.set("single", u"СПБ")
-    assert single_form["single"].value == u"СПБ"
-    display = single_form.submit("button")
-    assert u"<p>You selected СПБ</p>" in display, display
+        single_form = res.forms["single_select_form"]
+        self.assertEqual(single_form["single"].value, "5")
+        display = single_form.submit("button")
+        self.assertIn("<p>You selected 5</p>", display, display)
 
+        res = app.get('/')
+        self.assertEqual(res.status_int, 200)
+        self.assertEqual(res.headers['content-type'], 'text/html; charset=utf-8')
+        self.assertEqual(res.content_type, 'text/html')
 
+        single_form = res.forms["single_select_form"]
+        self.assertEqual(single_form["single"].value, "5")
+        single_form.set("single", "6")
+        self.assertEqual(single_form["single"].value, "6")
+        display = single_form.submit("button")
+        self.assertIn("<p>You selected 6</p>", display, display)
 
-def test_single_select():
-    app = webtest.TestApp(select_app)
-    res = app.get('/')
-    assert res.status_int == 200
-    assert res.headers['content-type'] == 'text/html; charset=utf-8'
-    assert res.content_type == 'text/html'
+    def test_single_select_forced_value(self):
+        app = webtest.TestApp(select_app)
+        res = app.get('/')
+        self.assertEqual(res.status_int, 200)
+        self.assertEqual(res.headers['content-type'], 'text/html; charset=utf-8')
+        self.assertEqual(res.content_type, 'text/html')
 
-    single_form = res.forms["single_select_form"]
-    assert single_form["single"].value == "5"
-    display = single_form.submit("button")
-    assert "<p>You selected 5</p>" in display, display
+        single_form = res.forms["single_select_form"]
+        self.assertEqual(single_form["single"].value, "5")
+        try:
+            single_form.set("single", "984")
+            self.assertTrue(False, "not-an-option value error should have been raised")
+        except ValueError:
+            pass
+        single_form["single"].force_value("984")
+        self.assertEqual(single_form["single"].value, "984")
+        display = single_form.submit("button")
+        self.assertIn("<p>You selected 984</p>", display, display)
 
-    res = app.get('/')
-    assert res.status_int == 200
-    assert res.headers['content-type'] == 'text/html; charset=utf-8'
-    assert res.content_type == 'text/html'
+    def test_single_select_no_default(self):
+        app = webtest.TestApp(select_app_without_default)
+        res = app.get('/')
+        self.assertEqual(res.status_int, 200)
+        self.assertEqual(res.headers['content-type'], 'text/html; charset=utf-8')
+        self.assertEqual(res.content_type, 'text/html')
 
-    single_form = res.forms["single_select_form"]
-    assert single_form["single"].value == "5"
-    single_form.set("single", "6")
-    assert single_form["single"].value == "6"
-    display = single_form.submit("button")
-    assert "<p>You selected 6</p>" in display, display
+        single_form = res.forms["single_select_form"]
+        self.assertEqual(single_form["single"].value, "4")
+        display = single_form.submit("button")
+        self.assertIn("<p>You selected 4</p>", display, display)
 
-def test_single_select_forced_value():
-    app = webtest.TestApp(select_app)
-    res = app.get('/')
-    assert res.status_int == 200
-    assert res.headers['content-type'] == 'text/html; charset=utf-8'
-    assert res.content_type == 'text/html'
+        res = app.get('/')
+        self.assertEqual(res.status_int, 200)
+        self.assertEqual(res.headers['content-type'], 'text/html; charset=utf-8')
+        self.assertEqual(res.content_type, 'text/html')
 
-    single_form = res.forms["single_select_form"]
-    assert single_form["single"].value == "5"
-    try:
-        single_form.set("single", "984")
-        assert False, "not-an-option value error should have been raised"
-    except ValueError, exc:
-        pass
-    single_form["single"].force_value("984")
-    assert single_form["single"].value == "984"
-    display = single_form.submit("button")
-    assert "<p>You selected 984</p>" in display, display
+        single_form = res.forms["single_select_form"]
+        self.assertEqual(single_form["single"].value, "4")
+        single_form.set("single", 6)
+        self.assertEqual(single_form["single"].value, "6")
+        display = single_form.submit("button")
+        self.assertIn("<p>You selected 6</p>", display, display)
 
-def test_single_select_no_default():
-    app = webtest.TestApp(select_app_without_default)
-    res = app.get('/')
-    assert res.status_int == 200
-    assert res.headers['content-type'] == 'text/html; charset=utf-8'
-    assert res.content_type == 'text/html'
+    def test_multiple_select(self):
+        app = webtest.TestApp(select_app)
+        res = app.get('/')
+        self.assertEqual(res.status_int, 200)
+        self.assertEqual(res.headers['content-type'], 'text/html; charset=utf-8')
+        self.assertEqual(res.content_type, 'text/html')
 
-    single_form = res.forms["single_select_form"]
-    assert single_form["single"].value == "4"
-    display = single_form.submit("button")
-    assert "<p>You selected 4</p>" in display, display
+        multiple_form = res.forms["multiple_select_form"]
+        self.assertEqual(multiple_form["multiple"].value, ['8', '11'],\
+            multiple_form["multiple"].value)
+        display = multiple_form.submit("button")
+        self.assertIn("<p>You selected 8, 11</p>", display, display)
 
-    res = app.get('/')
-    assert res.status_int == 200
-    assert res.headers['content-type'] == 'text/html; charset=utf-8'
-    assert res.content_type == 'text/html'
+        res = app.get('/')
+        self.assertEqual(res.status_int, 200)
+        self.assertEqual(res.headers['content-type'], 'text/html; charset=utf-8')
+        self.assertEqual(res.content_type, 'text/html')
 
-    single_form = res.forms["single_select_form"]
-    assert single_form["single"].value == "4"
-    single_form.set("single", 6)
-    assert single_form["single"].value == "6"
-    display = single_form.submit("button")
-    assert "<p>You selected 6</p>" in display, display
+        multiple_form = res.forms["multiple_select_form"]
+        self.assertEqual(multiple_form["multiple"].value, ["8", "11"],\
+            multiple_form["multiple"].value)
+        multiple_form.set("multiple", ["9"])
+        self.assertEqual(multiple_form["multiple"].value, ["9"],\
+            multiple_form["multiple"].value)
+        display = multiple_form.submit("button")
+        self.assertIn("<p>You selected 9</p>", display, display)
 
-def test_multiple_select():
-    app = webtest.TestApp(select_app)
-    res = app.get('/')
-    assert res.status_int == 200
-    assert res.headers['content-type'] == 'text/html; charset=utf-8'
-    assert res.content_type == 'text/html'
+    def test_multiple_select_forced_values(self):
+        app = webtest.TestApp(select_app)
+        res = app.get('/')
+        self.assertEqual(res.status_int, 200)
+        self.assertEqual(res.headers['content-type'], 'text/html; charset=utf-8')
+        self.assertEqual(res.content_type, 'text/html')
 
-    multiple_form = res.forms["multiple_select_form"]
-    assert multiple_form["multiple"].value == ['8', '11'],\
-        multiple_form["multiple"].value
-    display = multiple_form.submit("button")
-    assert "<p>You selected 8, 11</p>" in display, display
+        multiple_form = res.forms["multiple_select_form"]
+        self.assertEqual(multiple_form["multiple"].value, ["8", "11"],\
+            multiple_form["multiple"].value)
+        try:
+            multiple_form.set("multiple", ["24", "88"])
+            self.assertTrue(False, "not-an-option value error should have been raised")
+        except ValueError:
+            pass
+        multiple_form["multiple"].force_value(["24", "88"])
+        self.assertEqual(multiple_form["multiple"].value, ["24", "88"],\
+            multiple_form["multiple"].value)
+        display = multiple_form.submit("button")
+        self.assertIn("<p>You selected 24, 88</p>", display, display)
 
-    res = app.get('/')
-    assert res.status_int == 200
-    assert res.headers['content-type'] == 'text/html; charset=utf-8'
-    assert res.content_type == 'text/html'
+    def test_multiple_select_no_default(self):
+        app = webtest.TestApp(select_app_without_default)
+        res = app.get('/')
+        self.assertEqual(res.status_int, 200)
+        self.assertEqual(res.headers['content-type'], 'text/html; charset=utf-8')
+        self.assertEqual(res.content_type, 'text/html')
 
-    multiple_form = res.forms["multiple_select_form"]
-    assert multiple_form["multiple"].value == ["8", "11"],\
-        multiple_form["multiple"].value
-    multiple_form.set("multiple", ["9"])
-    assert multiple_form["multiple"].value == ["9"],\
-        multiple_form["multiple"].value
-    display = multiple_form.submit("button")
-    assert "<p>You selected 9</p>" in display, display
+        multiple_form = res.forms["multiple_select_form"]
+        self.assertTrue(multiple_form["multiple"].value is None,\
+            repr(multiple_form["multiple"].value))
+        display = multiple_form.submit("button")
+        self.assertIn("<p>You selected </p>", display, display)
 
-def test_multiple_select_forced_values():
-    app = webtest.TestApp(select_app)
-    res = app.get('/')
-    assert res.status_int == 200
-    assert res.headers['content-type'] == 'text/html; charset=utf-8'
-    assert res.content_type == 'text/html'
+        res = app.get('/')
+        self.assertEqual(res.status_int, 200)
+        self.assertEqual(res.headers['content-type'], 'text/html; charset=utf-8')
+        self.assertEqual(res.content_type, 'text/html')
 
-    multiple_form = res.forms["multiple_select_form"]
-    assert multiple_form["multiple"].value == ["8", "11"],\
-        multiple_form["multiple"].value
-    try:
-        multiple_form.set("multiple", ["24", "88"])
-        assert False, "not-an-option value error should have been raised"
-    except ValueError, exc:
-        pass
-    multiple_form["multiple"].force_value(["24", "88"])
-    assert multiple_form["multiple"].value == ["24", "88"],\
-        multiple_form["multiple"].value
-    display = multiple_form.submit("button")
-    assert "<p>You selected 24, 88</p>" in display, display
-
-def test_multiple_select_no_default():
-    app = webtest.TestApp(select_app_without_default)
-    res = app.get('/')
-    assert res.status_int == 200
-    assert res.headers['content-type'] == 'text/html; charset=utf-8'
-    assert res.content_type == 'text/html'
-
-    multiple_form = res.forms["multiple_select_form"]
-    assert multiple_form["multiple"].value is None,\
-        repr(multiple_form["multiple"].value)
-    display = multiple_form.submit("button")
-    assert "<p>You selected </p>" in display, display
-
-    res = app.get('/')
-    assert res.status_int == 200
-    assert res.headers['content-type'] == 'text/html; charset=utf-8'
-    assert res.content_type == 'text/html'
-
-    multiple_form = res.forms["multiple_select_form"]
-    assert multiple_form["multiple"].value is None,\
-        multiple_form["multiple"].value
-    multiple_form.set("multiple", ["9"])
-    assert multiple_form["multiple"].value == ["9"],\
-        multiple_form["multiple"].value
-    display = multiple_form.submit("button")
-    assert "<p>You selected 9</p>" in display, display
+        multiple_form = res.forms["multiple_select_form"]
+        self.assertTrue(multiple_form["multiple"].value is None,\
+            multiple_form["multiple"].value)
+        multiple_form.set("multiple", ["9"])
+        self.assertEqual(multiple_form["multiple"].value, ["9"],\
+            multiple_form["multiple"].value)
+        display = multiple_form.submit("button")
+        self.assertIn("<p>You selected 9</p>", display, display)

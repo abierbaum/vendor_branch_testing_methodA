@@ -1,10 +1,12 @@
 import webtest
 from webob import Request
+from tests.compat import unittest
+from webtest.compat import to_bytes
 
 
 def cookie_app(environ, start_response):
     req = Request(environ)
-    status = '200 OK'
+    status = "200 OK"
     body = '<html><body><a href="/go/">go</a></body></html>'
     headers = [
         ('Content-Type', 'text/html'),
@@ -16,29 +18,10 @@ def cookie_app(environ, start_response):
             ('Set-Cookie', 'foo="bar;baz"'),
         ])
     start_response(status, headers)
-    return [body]
-
-
-def test_cookies():
-    app = webtest.TestApp(cookie_app)
-    assert not app.cookies, 'App should initially contain no cookies'
-    res = app.get('/')
-    cookies = app.cookies
-    assert cookies, 'Response should have set cookies'
-    assert cookies['spam'] == 'eggs'
-    assert cookies['foo'] == 'bar;baz'
-
-
-def test_preserve_cookies():
-    app = webtest.TestApp(cookie_app)
-    res = app.get('/')
-    assert app.cookies
-    go_page = res.click('go')
-    assert app.cookies
-
+    return [to_bytes(body)]
 
 def cookie_app2(environ, start_response):
-    status = '200 OK'
+    status = to_bytes("200 OK")
     body = ''
     headers = [
         ('Content-Type', 'text/html'),
@@ -47,14 +30,34 @@ def cookie_app2(environ, start_response):
         ('Set-Cookie', 'foo="bar;baz"'),
     ]
     start_response(status, headers)
-    return [body]
+    return [to_bytes(body)]
+
+class TestCookies(unittest.TestCase):
+
+    def test_cookies(self):
+        app = webtest.TestApp(cookie_app)
+        self.assertTrue(not app.cookies, 'App should initially contain no cookies')
+        res = app.get('/')
+        cookies = app.cookies
+        self.assert_(cookies, 'Response should have set cookies')
+        self.assertEqual(cookies['spam'], 'eggs')
+        self.assertEqual(cookies['foo'], 'bar;baz')
 
 
-def test_cookies2():
-    app = webtest.TestApp(cookie_app)
-    assert not app.cookies, 'App should initially contain no cookies'
+    def test_preserve_cookies(self):
+        app = webtest.TestApp(cookie_app)
+        res = app.get('/')
+        self.assert_(app.cookies)
+        go_page = res.click('go')
+        self.assert_(app.cookies)
 
-    res = app.get('/')
-    assert app.cookies, 'Response should have set cookies'
-    assert app.cookies['spam'] == 'eggs'
-    assert app.cookies['foo'] == 'bar;baz'
+
+
+    def test_cookies2(self):
+        app = webtest.TestApp(cookie_app)
+        self.assertTrue(not app.cookies, 'App should initially contain no cookies')
+
+        res = app.get('/')
+        self.assert_(app.cookies, 'Response should have set cookies')
+        self.assertIn(app.cookies['spam'], 'eggs')
+        self.assertIn(app.cookies['foo'], 'bar;baz')

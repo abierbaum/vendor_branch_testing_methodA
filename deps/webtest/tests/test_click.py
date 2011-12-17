@@ -1,8 +1,12 @@
 #coding: utf-8
 import webtest
-from webtest import _parse_attrs
+from webtest.app import _parse_attrs
 from webob import Request
-from tests.test_testing import raises
+from webtest.compat import to_bytes
+from webtest.compat import PY3
+from tests.compat import unittest
+from tests.compat import u
+
 
 def links_app(environ, start_response):
     req = Request(environ)
@@ -33,7 +37,7 @@ def links_app(environ, start_response):
        '/spam/': '<html><body>This is spam.</body></html>',
        '/egg/': '<html><body>Just eggs.</body></html>',
 
-       '/utf8/': u"""
+       '/utf8/': u("""
             <html>
                 <head><title>Тестовая страница</title></head>
                 <body>
@@ -45,11 +49,11 @@ def links_app(environ, start_response):
                     </script>
                 </body>
             </html>
-            """.encode('utf8'),
+            """).encode('utf8'),
     }
 
     utf8_paths = ['/utf8/']
-    body = responses[req.path_info]
+    body = responses[u(req.path_info)]
     headers = [
         ('Content-Type', 'text/html'),
         ('Content-Length', str(len(body)))
@@ -58,66 +62,71 @@ def links_app(environ, start_response):
         headers[0] = ('Content-Type', 'text/html; charset=utf-8')
 
     start_response(status, headers)
-    return [body]
+    return [to_bytes(body)]
+
+class TestClick(unittest.TestCase):
+
+    def test_click(self):
+        app = webtest.TestApp(links_app)
+        self.assertIn('This is foo.', app.get('/').click('Foo'))
+        self.assertIn('This is foobar.', app.get('/').click('Foo').click('Bar'))
+        self.assertIn('This is bar.', app.get('/').click('Bar'))
+        self.assertIn('This is baz.', app.get('/').click('Baz')) # should skip non-clickable links
+        self.assertIn('This is baz.', app.get('/').click(linkid='id_baz'))
+        self.assertIn('This is baz.', app.get('/').click(href='baz/'))
+        self.assertIn('This is baz.', app.get('/').click(anchor="<a href='baz/' id='id_baz'>Baz</a>"))
+        self.assertIn('This is spam.', app.get('/').click('Click me!', index=0))
+        self.assertIn('Just eggs.', app.get('/').click('Click me!', index=1))
+
+        def multiple_links():
+            app.get('/').click('Click me!')
+        self.assertRaises(IndexError, multiple_links)
+
+        def invalid_index():
+            app.get('/').click('Click me!', index=2)
+        self.assertRaises(IndexError, invalid_index)
+
+        def no_links_found():
+            app.get('/').click('Ham')
+        self.assertRaises(IndexError, no_links_found)
+
+        def tag_inside_script():
+            app.get('/').click('Boo')
+        self.assertRaises(IndexError, tag_inside_script)
 
 
-def test_click():
-    app = webtest.TestApp(links_app)
-    assert 'This is foo.' in app.get('/').click('Foo')
-    assert 'This is foobar.' in app.get('/').click('Foo').click('Bar')
-    assert 'This is bar.' in app.get('/').click('Bar')
-    assert 'This is baz.' in app.get('/').click('Baz') # should skip non-clickable links
-    assert 'This is baz.' in app.get('/').click(linkid='id_baz')
-    assert 'This is baz.' in app.get('/').click(href='baz/')
-    assert 'This is baz.' in app.get('/').click(anchor="<a href='baz/' id='id_baz'>Baz</a>")
-    assert 'This is spam.' in app.get('/').click('Click me!', index=0)
-    assert 'Just eggs.' in app.get('/').click('Click me!', index=1)
+    def test_click_utf8(self):
+        app = webtest.TestApp(links_app, use_unicode=False)
+        resp = app.get('/utf8/')
+        self.assertEqual(resp.charset, 'utf-8')
+        if not PY3:
+            # No need to deal with that in Py3
+            self.assertIn(u("Тестовая страница").encode('utf8'), resp)
+            self.assertIn(u("Тестовая страница"), resp)
+            target = u('Менделеев').encode('utf8')
+            self.assertIn('This is foo.', resp.click(target))
 
-    def multiple_links():
-        app.get('/').click('Click me!')
-    raises(IndexError, multiple_links)
-
-    def invalid_index():
-        app.get('/').click('Click me!', index=2)
-    raises(IndexError, invalid_index)
-
-    def no_links_found():
-        app.get('/').click('Ham')
-    raises(IndexError, no_links_found)
-
-    def tag_inside_script():
-        app.get('/').click('Boo')
-    raises(IndexError, tag_inside_script)
+            # should skip the img tag
+            anchor = u(".*title='Поэт'.*")
+            anchor_re = anchor.encode('utf8')
+            self.assertIn('This is baz.', resp.click(anchor=anchor_re))
 
 
-def test_click_utf8():
-    app = webtest.TestApp(links_app, use_unicode=False)
-    resp = app.get('/utf8/')
-    assert resp.charset == 'utf-8'
-    assert u"Тестовая страница".encode('utf8') in resp
-    assert u"Тестовая страница" in resp
-    assert 'This is foo.' in resp.click(u'Менделеев'.encode('utf8'))
+    def test_click_u(self):
+        app = webtest.TestApp(links_app)
+        resp = app.get('/utf8/')
 
-    # should skip the img tag
-    anchor_re = u".*title='Поэт'.*".encode('utf8')
-    assert 'This is baz.' in resp.click(anchor=anchor_re)
+        self.assertIn(u("Тестовая страница"), resp)
+        self.assertIn('This is foo.', resp.click(u('Менделеев')))
+        self.assertIn('This is baz.', resp.click(anchor=u(".*title='Поэт'.*")))
 
 
-def test_click_unicode():
-    app = webtest.TestApp(links_app)
-    resp = app.get('/utf8/')
-
-    assert u"Тестовая страница" in resp
-    assert 'This is foo.' in resp.click(u'Менделеев')
-    assert 'This is baz.' in resp.click(anchor=u".*title='Поэт'.*")
-
-
-def test_parse_attrs():
-    assert _parse_attrs("href='foo'") == {'href': 'foo'}
-    assert _parse_attrs('href="foo"') == {'href': 'foo'}
-    assert _parse_attrs('href=""') == {'href': ''}
-    assert _parse_attrs('href="foo" id="bar"') == {'href': 'foo', 'id': 'bar'}
-    assert _parse_attrs('href="foo" id="bar"') == {'href': 'foo', 'id': 'bar'}
-    assert _parse_attrs("href='foo' id=\"bar\" ") == {'href': 'foo', 'id': 'bar'}
-    assert _parse_attrs("href='foo' id='bar' ") == {'href': 'foo', 'id': 'bar'}
-    assert _parse_attrs("tag='foo\"'") == {'tag': 'foo"'}
+    def test_parse_attrs(self):
+        self.assertEqual(_parse_attrs("href='foo'"), {'href': 'foo'})
+        self.assertEqual(_parse_attrs('href="foo"'), {'href': 'foo'})
+        self.assertEqual(_parse_attrs('href=""'), {'href': ''})
+        self.assertEqual(_parse_attrs('href="foo" id="bar"'), {'href': 'foo', 'id': 'bar'})
+        self.assertEqual(_parse_attrs('href="foo" id="bar"'), {'href': 'foo', 'id': 'bar'})
+        self.assertEqual(_parse_attrs("href='foo' id=\"bar\" "), {'href': 'foo', 'id': 'bar'})
+        self.assertEqual(_parse_attrs("href='foo' id='bar' "), {'href': 'foo', 'id': 'bar'})
+        self.assertEqual(_parse_attrs("tag='foo\"'"), {'tag': 'foo"'})

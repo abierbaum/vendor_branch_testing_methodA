@@ -1,7 +1,9 @@
-# (c) 2005 Ian Bicking and contributors; written for Paste (http://pythonpaste.org)
-# Licensed under the MIT license: http://www.opensource.org/licenses/mit-license.php
-# Also licenced under the Apache License, 2.0: http://opensource.org/licenses/apache2.0.php
-# Licensed to PSF under a Contributor Agreement
+# (c) 2005 Ian Bicking and contributors; written for Paste
+# (http://pythonpaste.org)
+# Licensed under the MIT license:
+# http://www.opensource.org/licenses/mit-license.php Also licenced under the
+# Apache License, 2.0: http://opensource.org/licenses/apache2.0.php Licensed to
+# PSF under a Contributor Agreement
 """
 Middleware to check for obedience to the WSGI specification.
 
@@ -111,16 +113,17 @@ Some of the things this checks:
 
 import re
 import sys
-from types import DictType, StringType, TupleType, ListType
 import warnings
 
 header_re = re.compile(r'^[a-zA-Z][a-zA-Z0-9\-_]*$')
 bad_header_value_re = re.compile(r'[\000-\037]')
 
+
 class WSGIWarning(Warning):
     """
     Raised in response to WSGI-spec-related warnings
     """
+
 
 def middleware(application, global_conf=None):
 
@@ -177,6 +180,7 @@ def middleware(application, global_conf=None):
 
     return lint_app
 
+
 class InputWrapper(object):
 
     def __init__(self, wsgi_input):
@@ -211,6 +215,7 @@ class InputWrapper(object):
     def close(self):
         assert 0, "input.close() must not be called"
 
+
 class ErrorWrapper(object):
 
     def __init__(self, wsgi_errors):
@@ -230,6 +235,7 @@ class ErrorWrapper(object):
     def close(self):
         assert 0, "errors.close() must not be called"
 
+
 class WriteWrapper(object):
 
     def __init__(self, wsgi_writer):
@@ -239,6 +245,7 @@ class WriteWrapper(object):
         assert type(s) is type("")
         self.writer(s)
 
+
 class PartialIteratorWrapper(object):
 
     def __init__(self, wsgi_iterator):
@@ -247,6 +254,7 @@ class PartialIteratorWrapper(object):
     def __iter__(self):
         # We want to make sure __iter__ is called
         return IteratorWrapper(self.iterator)
+
 
 class IteratorWrapper(object):
 
@@ -262,15 +270,21 @@ class IteratorWrapper(object):
     def next(self):
         assert not self.closed, (
             "Iterator read after closed")
-        v = self.iterator.next()
+        try:
+            v = next(self.iterator)
+        except NameError:
+            v = self.iterator.next()
         if self.check_start_response is not None:
             assert self.check_start_response, (
-                "The application returns and we started iterating over its body, but start_response has not yet been called")
+                "The application returns and we started iterating over its"
+                " body, but start_response has not yet been called")
             self.check_start_response = None
         assert isinstance(v, str), (
             "Iterator %r returned a non-str object: %r"
             % (self.iterator, v))
         return v
+
+    __next__ = next
 
     def close(self):
         self.closed = True
@@ -284,8 +298,9 @@ class IteratorWrapper(object):
         assert self.closed, (
             "Iterator garbage collected without being closed")
 
+
 def check_environ(environ):
-    assert type(environ) is DictType, (
+    assert type(environ) is dict, (
         "Environment is not of the right type: %r (environment: %r)"
         % (type(environ), environ))
 
@@ -308,15 +323,15 @@ def check_environ(environ):
             'so application errors are more likely',
             WSGIWarning)
 
-    for key in environ.keys():
+    for key in environ:
         if '.' in key:
             # Extension, we don't care about its type
             continue
-        assert type(environ[key]) is StringType, (
+        assert type(environ[key]) is str, (
             "Environmental variable %s is not a string: %r (value: %r)"
             % (key, type(environ[key]), environ[key]))
 
-    assert type(environ['wsgi.version']) is TupleType, (
+    assert type(environ['wsgi.version']) is tuple, (
         "wsgi.version should be a tuple (%r)" % environ['wsgi.version'])
     assert environ['wsgi.url_scheme'] in ('http', 'https'), (
         "wsgi.url_scheme unknown: %r" % environ['wsgi.url_scheme'])
@@ -326,7 +341,7 @@ def check_environ(environ):
 
     # @@: these need filling out:
     if environ['REQUEST_METHOD'] not in (
-        'GET', 'HEAD', 'POST', 'OPTIONS','PUT','DELETE','TRACE'):
+        'GET', 'HEAD', 'POST', 'OPTIONS', 'PUT', 'DELETE', 'TRACE'):
         warnings.warn(
             "Unknown REQUEST_METHOD: %r" % environ['REQUEST_METHOD'],
             WSGIWarning)
@@ -342,12 +357,13 @@ def check_environ(environ):
             "Invalid CONTENT_LENGTH: %r" % environ['CONTENT_LENGTH'])
 
     if not environ.get('SCRIPT_NAME'):
-        assert environ.has_key('PATH_INFO'), (
+        assert 'PATH_INFO' in environ, (
             "One of SCRIPT_NAME or PATH_INFO are required (PATH_INFO "
             "should at least be '/' if SCRIPT_NAME is empty)")
     assert environ.get('SCRIPT_NAME') != '/', (
         "SCRIPT_NAME cannot be '/'; it should instead be '', and "
         "PATH_INFO should be '/'")
+
 
 def check_input(wsgi_input):
     for attr in ['read', 'readline', 'readlines', '__iter__']:
@@ -355,14 +371,16 @@ def check_input(wsgi_input):
             "wsgi.input (%r) doesn't have the attribute %s"
             % (wsgi_input, attr))
 
+
 def check_errors(wsgi_errors):
     for attr in ['flush', 'write', 'writelines']:
         assert hasattr(wsgi_errors, attr), (
             "wsgi.errors (%r) doesn't have the attribute %s"
             % (wsgi_errors, attr))
 
+
 def check_status(status):
-    assert type(status) is StringType, (
+    assert type(status) is str, (
         "Status must be a string (not %r)" % status)
     # Implicitly check that we can turn it into an integer:
     status_code = status.split(None, 1)[0]
@@ -376,13 +394,14 @@ def check_status(status):
             "followed by a single space and a status explanation"
             % status, WSGIWarning)
 
+
 def check_headers(headers):
-    assert type(headers) is ListType, (
+    assert type(headers) is list, (
         "Headers (%r) must be of type list: %r"
         % (headers, type(headers)))
     header_names = {}
     for item in headers:
-        assert type(item) is TupleType, (
+        assert type(item) is tuple, (
             "Individual headers (%r) must be of type tuple: %r"
             % (item, type(item)))
         assert len(item) == 2
@@ -400,6 +419,7 @@ def check_headers(headers):
         assert not bad_header_value_re.search(value), (
             "Bad header value: %r (bad char: %r)"
             % (value, bad_header_value_re.search(value).group(0)))
+
 
 def check_content_type(status, headers):
     code = int(status.split(None, 1)[0])
@@ -426,10 +446,12 @@ def check_content_type(status, headers):
     if code not in NO_MESSAGE_BODY:
         assert 0, "No Content-Type header found in headers (%s)" % headers
 
+
 def check_exc_info(exc_info):
     assert exc_info is None or type(exc_info) is type(()), (
         "exc_info (%r) is not a tuple: %r" % (exc_info, type(exc_info)))
     # More exc_info checks?
+
 
 def check_iterator(iterator):
     # Technically a string is legal, which is why it's a really bad
@@ -438,6 +460,7 @@ def check_iterator(iterator):
     assert not isinstance(iterator, str), (
         "You should not return a string as your application iterator, "
         "instead return a single-item list containing that string.")
+
 
 def make_middleware(application, global_conf):
     # @@: global_conf should be taken out of the middleware function,
