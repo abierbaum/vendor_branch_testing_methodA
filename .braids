@@ -1,9 +1,8 @@
 --- 
 tools/grit: 
   branch: master
-  lock: 568935ddda3168ddbe876163ace842eeb3d62e0a
   remote: master/braid/tools/grit
-  revision: 568935ddda3168ddbe876163ace842eeb3d62e0a
+  revision: ff015074ef35bd94cba943f9c0f98e161ab5851c
   squashed: true
   type: git
   url: git://github.com/mojombo/grit.git
