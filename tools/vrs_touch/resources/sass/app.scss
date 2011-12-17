@@ -1,0 +1,55 @@
+/* -- VARIABLE OVERRIDES -- //
+* 1. Variable overrides, example:
+* $base-color: #af2584;
+*
+* tip: search for !default in the codebase to find variables that
+*      can be overridden
+*/
+
+/** Let's start with the basics */
+$base-color: #7c92ae;
+$base-gradient: 'glossy';
+
+/* Lists */
+$list-active-gradient: 'bevel';
+$list-header-bg-color: transparentize(saturate($base-color, 10%), .25);
+$list-header-gradient: 'matte';
+
+/* Tabs */
+$tabs-dark: #111;
+
+/** Config options */
+$include-default-icons: true;
+
+/** vrs.ux.touch settings. */
+/** Size of the icon mask to use on menu panels. */
+$menupanel-iconsmask-size: 1em;
+/** Format the form panel and fields to have an iOs feel. */
+$use-ios-style-forms: true;
+
+/* -- INCLUDE STYLES --
+* 2. Include Sencha Touch styles
+* (copy from base sencha-touch.scss each rev)
+*/
+@import 'sencha-touch/default/all';
+@include sencha-panel;
+@include sencha-buttons;
+@include sencha-sheet;
+@include sencha-picker;
+@include sencha-tabs;
+@include sencha-toolbar;
+@include sencha-toolbar-forms;
+@include sencha-carousel;
+@include sencha-indexbar;
+@include sencha-list;
+@include sencha-list-paging;
+@include sencha-list-pullrefresh;
+@include sencha-layout;
+@include sencha-form;
+@include sencha-msgbox;
+@include sencha-loading-spinner;
+
+
+/** Custom classes in vrs.ux.touch. */
+@import "vrs_menu_panel";
+
