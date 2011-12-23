@@ -9,3 +9,6 @@ utils.doSomething(10)
 
 utils.doSomething2(15)
 
+
+print "Now we do more things"
+
