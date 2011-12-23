@@ -1,4 +1,4 @@
-
+# This file does something
 
 def doSomething(value, other = None):
   print "Did something with: ", value
@@ -15,3 +15,4 @@ def commonMethod(value):
 
 def refactor2Method(value):
   print "refactor 2 value: ", value
+
