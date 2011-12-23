@@ -15,3 +15,4 @@ def commonMethod(value):
 
 def refactor2Method(value):
   print "refactor 2 value: ", value
+
