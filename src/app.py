@@ -1,5 +1,6 @@
 import utils
 
+print "Working on X"
 
 print "Starting up the app"
 
