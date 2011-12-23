@@ -1,4 +1,4 @@
-
+# This file does something
 
 def doSomething(value, other = None):
   print "Did something with: ", value
