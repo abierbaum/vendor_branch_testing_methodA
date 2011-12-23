@@ -14,4 +14,4 @@ def commonMethod(value):
   print "common support: ", value
 
 def refactor2Method(value):
-  print "value: ", value
+  print "refactor 2 value: ", value
