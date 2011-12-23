@@ -13,3 +13,5 @@ def doSomething2(value):
 def commonMethod(value):
   print "common support: ", value
 
+def refactor2Method(value):
+  print "value: ", value
